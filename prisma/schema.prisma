@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model actualspend {
+  idas      String   @id @default(uuid())
+  source    String   @db.VarChar(55)
+  value     Float
+  date      DateTime @db.Date
+  idproject String   @db.VarChar(55)
+  project   project  @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_actualspend_project")
+
+  @@index([idproject], map: "fk_actualspend_project")
+}
+
+model budgetedcost {
+  idbc      String  @id @default(uuid())
+  source    String  @db.VarChar(55)
+  value     Float
+  idproject String  @db.VarChar(55)
+  project   project @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_budgetedcost_project")
+
+  @@index([idproject], map: "fk_budgetedcost_project")
+}
+
+model client {
+  clientid   String     @id @default(uuid())
+  clientname String     @db.VarChar(45)
+  clientpm   clientpm[]
+  project    project[]
+}
+
+model clientpm {
+  clientpmid String  @id @default(uuid())
+  email      String  @db.VarChar(55)
+  name       String? @db.VarChar(45)
+  clientid   String
+  company    client  @relation(fields: [clientid], references: [clientid], onDelete: Restrict, onUpdate: Restrict, map: "clientID")
+
+  @@index([clientid], map: "clientID_idx")
+}
+
+model invoice {
+  invoiceid          String    @id @default(uuid())
+  source             String    @db.VarChar(55)
+  value              Float
+  status             String    @db.VarChar(45)
+  date_of_submission DateTime  @db.Date
+  date_of_receiving  DateTime? @db.Date
+  idproject          String    @db.VarChar(55)
+  project            project   @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_invoice_project")
+
+  @@index([idproject], map: "fk_invoice_project")
+}
+
+model paymentmilestone {
+  idpm           String  @id @default(uuid())
+  milestonetext  String  @db.MediumText
+  milestonevalue Float
+  idproject      String  @db.VarChar(55)
+  project        project @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_paymentmilestone_project")
+
+  @@index([idproject], map: "fk_paymentmilestone_project")
+}
+
+model project {
+  idp                   String              @id @default(uuid())
+  idproject             String              @unique @db.VarChar(55)
+  projectname           String              @db.VarChar(45)
+  description           String?             @db.MediumText
+  projecttype           String              @db.VarChar(45)
+  projectstatus         String              @db.VarChar(45)
+  projectstartdate      DateTime            @db.Date
+  projectmanager        String
+  durationOfproject     Int?
+  plannedcompletiondate DateTime?           @db.Date
+  currency              String              @db.VarChar(45)
+  contractvalue         Float
+  contractstatus        String              @db.VarChar(45)
+  referencenumber       String              @db.VarChar(45)
+  expectedprofit        Float
+  actualprofit          Float?
+  clientid              String
+  actualspend           actualspend[]
+  budgetedcost          budgetedcost[]
+  invoice               invoice[]
+  paymentmilestone      paymentmilestone[]
+  client                client              @relation(fields: [clientid], references: [clientid], onDelete: Restrict, onUpdate: Restrict, map: "fk_project_client")
+  user                  User                @relation(fields: [projectmanager], references: [iduser], onDelete: Restrict, onUpdate: Restrict, map: "projectManager")
+  revenuerecognized     revenuerecognized[]
+
+  @@index([clientid], map: "fk_project_client")
+  @@index([projectmanager], map: "projectManager_idx")
+}
+
+model revenuerecognized {
+  idrr      String   @id @default(uuid())
+  date      DateTime @db.Date
+  value     Float
+  idproject String   @db.VarChar(55)
+  project   project  @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_revenuerecognized_project")
+
+  @@index([idproject], map: "fk_revenuerecognized_project")
+}
+
+model role {
+  idrole      String @id @default(uuid())
+  rolename    String @db.VarChar(45)
+  permissions String @db.MediumText
+  user        User[]
+}
+
+model User {
+  iduser    String    @id @default(uuid())
+  email     String    @unique @db.VarChar(80)
+  password  String    @db.VarChar(80)
+  firstname String    @db.VarChar(45)
+  lastname  String    @db.VarChar(45)
+  roleid    String
+  project   project[]
+  role      role      @relation(fields: [roleid], references: [idrole], onDelete: Restrict, onUpdate: Restrict, map: "roleID")
+
+  @@index([roleid], map: "roleID_idx")
+}

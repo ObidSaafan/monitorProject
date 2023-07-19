@@ -1,0 +1,18 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 4000,
+            "driver": "MySQL",
+            "name": "costDB",
+            "database": "monitorproject",
+            "password": "password",
+            "username": "root"
+        }
+    ]
+}
