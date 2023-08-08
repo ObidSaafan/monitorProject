@@ -1,34 +1,14 @@
 import express from "express";
 import cors from "cors";
 import userRouter from './routers/user.router';
+import projectRouter from './routers/project.router';
+import clientRouter from './routers/client.router';
 import dotenv from 'dotenv';
 
 dotenv.config();
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient()
 
-async function main() {
-    await prisma.user.create({
-        data: {
-            iduser:"1",
-            email: "hani@prisma.com",
-            password: "password",
-            firstname: "hani",
-            lastname: "has",
-            role:{
-                create:{
-                    rolename:"fm",
-                    permissions:"idk"
-                },
-            },
-        },
-        include:{
-            role:true,
-        },
-        
-    })
-    
-}
 
 
 const app = express();
@@ -45,3 +25,5 @@ app.use(cors({
 
 
 app.use("/api/users", userRouter)
+app.use("/api/projects", projectRouter)
+app.use("/api/clients", clientRouter)

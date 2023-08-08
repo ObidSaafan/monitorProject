@@ -26,6 +26,7 @@ CREATE TABLE `client` (
     `clientid` VARCHAR(191) NOT NULL,
     `clientname` VARCHAR(45) NOT NULL,
 
+    UNIQUE INDEX `client_clientname_key`(`clientname`),
     PRIMARY KEY (`clientid`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -71,15 +72,15 @@ CREATE TABLE `project` (
     `idproject` VARCHAR(55) NOT NULL,
     `projectname` VARCHAR(45) NOT NULL,
     `description` MEDIUMTEXT NULL,
-    `projecttype` VARCHAR(45) NOT NULL,
-    `projectstatus` VARCHAR(45) NOT NULL,
+    `projecttype` ENUM('fixedPrice', 'TnM', 'SnM', 'OPEX') NOT NULL,
+    `projectstatus` ENUM('notStarted', 'inProgress', 'onHold', 'cancelled', 'finished') NOT NULL,
     `projectstartdate` DATE NOT NULL,
     `projectmanager` VARCHAR(191) NOT NULL,
     `durationOfproject` INTEGER NULL,
     `plannedcompletiondate` DATE NULL,
-    `currency` VARCHAR(45) NOT NULL,
+    `currency` ENUM('AED', 'USD', 'EUR', 'AUD') NOT NULL,
     `contractvalue` DOUBLE NOT NULL,
-    `contractstatus` VARCHAR(45) NOT NULL,
+    `contractstatus` ENUM('Signed', 'Notsigned', 'LOA') NOT NULL,
     `referencenumber` VARCHAR(45) NOT NULL,
     `expectedprofit` DOUBLE NOT NULL,
     `actualprofit` DOUBLE NULL,

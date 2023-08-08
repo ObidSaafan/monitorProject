@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler'
 import { HTTP_BAD_REQUEST } from '../constants/http_status';
 import { PrismaClient, User } from '@prisma/client'
-import { compare } from 'bcryptjs';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient()
@@ -70,7 +69,7 @@ router.post('/register', asyncHandler(
   
     const generateTokenReponse = (user : User) => {
       const token = jwt.sign({
-        id: user.iduser, email:user.email
+        id: user.iduser, email:user.email,firstname:user.firstname, lastname:user.lastname,role:user.roleid
         },process.env.JWT_SECRET!,{
         expiresIn:"30d"
       });

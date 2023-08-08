@@ -30,7 +30,7 @@ model budgetedcost {
 
 model client {
   clientid   String     @id @default(uuid())
-  clientname String     @db.VarChar(45)
+  clientname String     @unique @db.VarChar(45)
   clientpm   clientpm[]
   project    project[]
 }
@@ -73,15 +73,15 @@ model project {
   idproject             String              @unique @db.VarChar(55)
   projectname           String              @db.VarChar(45)
   description           String?             @db.MediumText
-  projecttype           String              @db.VarChar(45)
-  projectstatus         String              @db.VarChar(45)
+  projecttype           type
+  projectstatus         status
   projectstartdate      DateTime            @db.Date
   projectmanager        String
   durationOfproject     Int?
   plannedcompletiondate DateTime?           @db.Date
-  currency              String              @db.VarChar(45)
+  currency              currency
   contractvalue         Float
-  contractstatus        String              @db.VarChar(45)
+  contractstatus        cstatus
   referencenumber       String              @db.VarChar(45)
   expectedprofit        Float
   actualprofit          Float?
@@ -126,4 +126,32 @@ model User {
   role      role      @relation(fields: [roleid], references: [idrole], onDelete: Restrict, onUpdate: Restrict, map: "roleID")
 
   @@index([roleid], map: "roleID_idx")
+}
+
+enum status {
+  notStarted
+  inProgress
+  onHold
+  cancelled
+  finished
+}
+
+enum type {
+  fixedPrice
+  TnM
+  SnM
+  OPEX
+}
+
+enum cstatus {
+  Signed
+  Notsigned
+  LOA
+}
+
+enum currency {
+  AED
+  USD
+  EUR
+  AUD
 }
