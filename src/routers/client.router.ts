@@ -41,7 +41,7 @@ router.get('/clientNmanagers', asyncHandler(
   ));
 */
 
-router.get('/clientNmanagers', asyncHandler(async (req, res) => {
+/*router.get('/clientNmanagers', asyncHandler(async (req, res) => {
   try {
     const clients = await prisma.client.findMany({
       include: {
@@ -64,7 +64,7 @@ router.get('/clientNmanagers', asyncHandler(async (req, res) => {
     res.status(500)
     .send('Internal Server Error');
   }}));
-
+*/
 
 ///////////////////////////////////////////////////////////////////
 /*router.post('/add', asyncHandler(

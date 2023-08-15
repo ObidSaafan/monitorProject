@@ -2,7 +2,7 @@ import {Router} from 'express';
 import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler'
 import { HTTP_BAD_REQUEST } from '../constants/http_status';
-import { PrismaClient, User } from '@prisma/client'
+import { PrismaClient, user } from '@prisma/client'
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient()
@@ -52,13 +52,13 @@ router.post('/register', asyncHandler(
   
       const encryptedPassword = await bcrypt.hash(Password, 10);
   
-      const newUser: User = await prisma.user.create({
+      const newUser: user = await prisma.user.create({
         data:{
         firstname,
         lastname,
         email: Email.toLowerCase(),
         password: encryptedPassword,
-        roleid: '1'
+        roleid: '2'
         },
       },
     )
@@ -67,7 +67,7 @@ router.post('/register', asyncHandler(
 ));
 
   
-    const generateTokenReponse = (user : User) => {
+    const generateTokenReponse = (user : user) => {
       const token = jwt.sign({
         id: user.iduser, email:user.email,firstname:user.firstname, lastname:user.lastname,role:user.roleid
         },process.env.JWT_SECRET!,{

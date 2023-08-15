@@ -13,7 +13,7 @@ model actualspend {
   value     Float
   date      DateTime @db.Date
   idproject String   @db.VarChar(55)
-  project   project  @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_actualspend_project")
+  project   project  @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_actualspend_project")
 
   @@index([idproject], map: "fk_actualspend_project")
 }
@@ -23,7 +23,7 @@ model budgetedcost {
   source    String  @db.VarChar(55)
   value     Float
   idproject String  @db.VarChar(55)
-  project   project @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_budgetedcost_project")
+  project   project @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_budgetedcost_project")
 
   @@index([idproject], map: "fk_budgetedcost_project")
 }
@@ -35,12 +35,22 @@ model client {
   project    project[]
 }
 
+model draft {
+  draftid     String @id @default(uuid())
+  draft       String @db.LongText
+  creator     String
+  draftholder user   @relation(fields: [creator], references: [iduser], onUpdate: Restrict, map: "creator")
+
+  @@index([creator], map: "creator_idx")
+}
+
 model clientpm {
-  clientpmid String  @id @default(uuid())
-  email      String  @db.VarChar(55)
-  name       String? @db.VarChar(45)
+  clientpmid String    @id @default(uuid())
+  email      String    @db.VarChar(55)
+  name       String?   @db.VarChar(45)
   clientid   String
-  company    client  @relation(fields: [clientid], references: [clientid], onDelete: Restrict, onUpdate: Restrict, map: "clientID")
+  company    client    @relation(fields: [clientid], references: [clientid], onUpdate: Restrict, map: "clientID")
+  project    project[]
 
   @@index([clientid], map: "clientID_idx")
 }
@@ -53,7 +63,7 @@ model invoice {
   date_of_submission DateTime  @db.Date
   date_of_receiving  DateTime? @db.Date
   idproject          String    @db.VarChar(55)
-  project            project   @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_invoice_project")
+  project            project   @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_invoice_project")
 
   @@index([idproject], map: "fk_invoice_project")
 }
@@ -63,7 +73,7 @@ model paymentmilestone {
   milestonetext  String  @db.MediumText
   milestonevalue Float
   idproject      String  @db.VarChar(55)
-  project        project @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_paymentmilestone_project")
+  project        project @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_paymentmilestone_project")
 
   @@index([idproject], map: "fk_paymentmilestone_project")
 }
@@ -77,6 +87,7 @@ model project {
   projectstatus         status
   projectstartdate      DateTime            @db.Date
   projectmanager        String
+  clientpmid            String
   durationOfproject     Int?
   plannedcompletiondate DateTime?           @db.Date
   currency              currency
@@ -86,16 +97,19 @@ model project {
   expectedprofit        Float
   actualprofit          Float?
   clientid              String
+  comments              String?
   actualspend           actualspend[]
   budgetedcost          budgetedcost[]
   invoice               invoice[]
   paymentmilestone      paymentmilestone[]
-  client                client              @relation(fields: [clientid], references: [clientid], onDelete: Restrict, onUpdate: Restrict, map: "fk_project_client")
-  user                  User                @relation(fields: [projectmanager], references: [iduser], onDelete: Restrict, onUpdate: Restrict, map: "projectManager")
+  client                client              @relation(fields: [clientid], references: [clientid], onUpdate: Restrict, map: "fk_project_client")
+  Sprojectmanager       user                @relation(fields: [projectmanager], references: [iduser], onUpdate: Restrict, map: "projectManager")
+  pmclient              clientpm            @relation(fields: [clientpmid], references: [clientpmid], onDelete: Restrict, onUpdate: Restrict, map: "CprojectManager_idx")
   revenuerecognized     revenuerecognized[]
 
   @@index([clientid], map: "fk_project_client")
   @@index([projectmanager], map: "projectManager_idx")
+  @@index([clientpmid], map: "CprojectManager_idx")
 }
 
 model revenuerecognized {
@@ -103,7 +117,7 @@ model revenuerecognized {
   date      DateTime @db.Date
   value     Float
   idproject String   @db.VarChar(55)
-  project   project  @relation(fields: [idproject], references: [idproject], onDelete: Restrict, onUpdate: Restrict, map: "fk_revenuerecognized_project")
+  project   project  @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_revenuerecognized_project")
 
   @@index([idproject], map: "fk_revenuerecognized_project")
 }
@@ -112,18 +126,19 @@ model role {
   idrole      String @id @default(uuid())
   rolename    String @db.VarChar(45)
   permissions String @db.MediumText
-  user        User[]
+  user        user[]
 }
 
-model User {
+model user {
   iduser    String    @id @default(uuid())
-  email     String    @unique @db.VarChar(80)
+  email     String    @unique(map: "User_email_key") @db.VarChar(80)
   password  String    @db.VarChar(80)
   firstname String    @db.VarChar(45)
   lastname  String    @db.VarChar(45)
   roleid    String
   project   project[]
-  role      role      @relation(fields: [roleid], references: [idrole], onDelete: Restrict, onUpdate: Restrict, map: "roleID")
+  role      role      @relation(fields: [roleid], references: [idrole], onUpdate: Restrict, map: "roleID")
+  draft     draft[]
 
   @@index([roleid], map: "roleID_idx")
 }

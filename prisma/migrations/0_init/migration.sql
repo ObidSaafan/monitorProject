@@ -76,6 +76,7 @@ CREATE TABLE `project` (
     `projectstatus` ENUM('notStarted', 'inProgress', 'onHold', 'cancelled', 'finished') NOT NULL,
     `projectstartdate` DATE NOT NULL,
     `projectmanager` VARCHAR(191) NOT NULL,
+    `clientpmid` VARCHAR(191) NOT NULL,
     `durationOfproject` INTEGER NULL,
     `plannedcompletiondate` DATE NULL,
     `currency` ENUM('AED', 'USD', 'EUR', 'AUD') NOT NULL,
@@ -89,6 +90,7 @@ CREATE TABLE `project` (
     UNIQUE INDEX `project_idproject_key`(`idproject`),
     INDEX `fk_project_client`(`clientid`),
     INDEX `projectManager_idx`(`projectmanager`),
+    INDEX `CprojectManager_idx`(`clientpmid`),
     PRIMARY KEY (`idp`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -113,7 +115,7 @@ CREATE TABLE `role` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `User` (
+CREATE TABLE `user` (
     `iduser` VARCHAR(191) NOT NULL,
     `email` VARCHAR(80) NOT NULL,
     `password` VARCHAR(80) NOT NULL,
@@ -145,11 +147,14 @@ ALTER TABLE `paymentmilestone` ADD CONSTRAINT `fk_paymentmilestone_project` FORE
 ALTER TABLE `project` ADD CONSTRAINT `fk_project_client` FOREIGN KEY (`clientid`) REFERENCES `client`(`clientid`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
-ALTER TABLE `project` ADD CONSTRAINT `projectManager` FOREIGN KEY (`projectmanager`) REFERENCES `User`(`iduser`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `project` ADD CONSTRAINT `projectManager` FOREIGN KEY (`projectmanager`) REFERENCES `user`(`iduser`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- AddForeignKey
+ALTER TABLE `project` ADD CONSTRAINT `CprojectManager_idx` FOREIGN KEY (`clientpmid`) REFERENCES `clientpm`(`clientpmid`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
 ALTER TABLE `revenuerecognized` ADD CONSTRAINT `fk_revenuerecognized_project` FOREIGN KEY (`idproject`) REFERENCES `project`(`idproject`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
-ALTER TABLE `User` ADD CONSTRAINT `roleID` FOREIGN KEY (`roleid`) REFERENCES `role`(`idrole`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `user` ADD CONSTRAINT `roleID` FOREIGN KEY (`roleid`) REFERENCES `role`(`idrole`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
