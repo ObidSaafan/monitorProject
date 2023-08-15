@@ -36,7 +36,7 @@ model client {
 }
 
 model draft {
-  draftid     String @id @default(uuid())
+  draftid     String @id
   draft       String @db.LongText
   creator     String
   draftholder user   @relation(fields: [creator], references: [iduser], onUpdate: Restrict, map: "creator")
