@@ -158,7 +158,7 @@ router.post('/add', asyncHandler(async (req, res) => {
     }
 
     // Add a new project manager associated with the client (either existing or newly created)
-    const newPM = await prisma.clientpm.create({
+    const newPM = await prisma.clientpm.create({ // TODO: test the remove the newPM
       data: {
         name: pmName.toLowerCase(),
         email: pmEmail.toLowerCase(),

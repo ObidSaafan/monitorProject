@@ -3,11 +3,15 @@ import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler'
 import { HTTP_BAD_REQUEST } from '../constants/http_status';
 import { allowedProjectTypes,allowedProjectStatuses,allowedContractStatuses,allowedCurrencies } from '../constants/allowed_types';
-import { PrismaClient, project, client, clientpm, budgetedcost, paymentmilestone} from '@prisma/client'
+import { PrismaClient, project} from '@prisma/client'
+
+
+
+const bodyParser = require('body-parser');
+
 
 
 const prisma = new PrismaClient()
-
 const router = Router();
 
 
@@ -66,6 +70,28 @@ router.get('/information', async (req, res) => {
         }
   ))*/
 
+/*router.post('/createDraft', asyncHandler(
+    async (req, res) => {
+      const {draft} = req.body;
+      const newDraft: draft = await prisma.draft.create({
+        data:{
+        draft
+        },
+      },
+    )
+      res.send(newDraft);
+    }
+));
+
+router.get("/Drafts",asyncHandler(
+  async (req, res) => {
+    const drafts = await prisma.draft.findMany();
+      res.send(draftss);
+  }
+))
+*/
+router.use(bodyParser.json());
+
 
 router.post('/validate25', (req, res) => {
     const { contractStatus } = req.body;
@@ -111,49 +137,75 @@ router.post('/validate75', (req, res) => {
 
 router.post('/create', asyncHandler(
     async (req, res) => {
-      const {projectName,Description, projectType, projectStatus, projectStartDate, durationOfProject,plannedCompletionDate, Currency,contractValue,contractStatus,referenceNumber,expectedProfit, actualProfit,projectmanagerf,projectmanagerl,clientName, paymentMilestones,budgetedcosts,projectmanagerclient} = req.body;
-      const project = await prisma.project.findFirst({
-        where:{
+      const {projectName,Description, projectType, projectStatus, projectStartDate, durationOfProject,plannedCompletionDate, Currency,contractValue,contractStatus,referenceNumber,expectedProfit, actualProfit,projectmanager,clientName, paymentMilestones,budgetedcosts,projectmanagerclient} = req.body;
+      
+      let project;
+
+      if (projectName) {
+        project = await prisma.project.findFirst({
+          where: {
             projectname: projectName,
-        }});
-      if(project){
-        res.status(HTTP_BAD_REQUEST)
-        .send('project already exists!');
+          },
+        });
+      }
+      
+      if (project) {
+        res.status(HTTP_BAD_REQUEST).send('Project already exists!');
         return;
       }
       
+      
       // paymentmilestoneValue,paymentmilestoneDesc
       
-      const client = await prisma.client.findUnique({
-        where: {
-          clientname: clientName,
-        },
-      });
+      let client;
+
+      if (clientName) {
+        client = await prisma.client.findUnique({
+          where: {
+            clientname: clientName,
+          },
+        });
+      }
+      
       if (!client) {
         // Handle the case where the client doesn't exist
         res.status(HTTP_BAD_REQUEST).send('Client does not exist.');
-        return ;
+        return;
       }
-      const pm = await prisma.user.findFirst({
-        where: {
-         firstname:projectmanagerf,
-         lastname:projectmanagerl
-        },
-      });
+      
+
+      let pm;
+
+      if (projectmanager) {
+        pm = await prisma.user.findFirst({
+          where: {
+             email: projectmanager,
+          },
+        });
+      }
+      
       if (!pm) {
-        // Handle the case where the client doesn't exist
-        res.status(HTTP_BAD_REQUEST).send('pm does not exist.');
-        return ;
+        // Handle the case where the project manager doesn't exist
+        res.status(HTTP_BAD_REQUEST).send('Project manager does not exist.');
+        return;
       }
-      const cpm = await prisma.clientpm.findFirst({
-        where: {
-         name:projectmanagerclient,
-        },
-      });
+      
+
+      
+      let cpm;
+
+      if (projectmanagerclient) {
+        cpm = await prisma.clientpm.findFirst({
+          where: {
+            email: projectmanagerclient,
+          },
+        });
+      }
+      
       if (!cpm) {
-        // Handle the case where the client doesn't exist
-        res.status(HTTP_BAD_REQUEST).send('pm does not exist.');
-        return ;
+        // Handle the case where the client pm doesn't exist
+        res.status(HTTP_BAD_REQUEST).send('Client pm does not exist.');
+        return;
       }
      /* const newProject: project = await prisma.project.create({
         data:{

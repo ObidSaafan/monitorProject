@@ -14,8 +14,8 @@ router.use(authenticateToken);
 
 // Define the API endpoint for saving drafts
 router.post('/save-draft', async (req: express.Request, res: express.Response) => {
-  try {
-    const { id: draftId, ...draftData } = req.body;
+  //try {
+    const { id: draftId, draft } = req.body;
     const userId = req.user?.id; // Assuming you have the user's ID available
 
     // Ensure that userId is defined before proceeding
@@ -26,7 +26,7 @@ router.post('/save-draft', async (req: express.Request, res: express.Response) =
     // Define the draft creation input based on your Prisma schema
     const draftInput = {
       draftid: uuidv4(),
-      draft: draftData,
+      draft: draft,
       creator: userId, // Use the user's ID here
     };
 
@@ -35,7 +35,7 @@ router.post('/save-draft', async (req: express.Request, res: express.Response) =
       const updatedDraft = await prisma.draft.update({
         where: { draftid: draftId },
         data: {
-          draft: draftData,
+          draft: draft,
         },
       });
 
@@ -48,9 +48,10 @@ router.post('/save-draft', async (req: express.Request, res: express.Response) =
 
       res.json({ success: true, draft: newDraft });
     }
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to save draft.' });
-  }
-});
+  } //catch (error) {
+    //res.status(500).json({ error: 'Failed to save draft.' });
+  //}
+//}
+);
 
 export default router; // Export the router instance

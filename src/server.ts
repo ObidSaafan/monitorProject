@@ -3,6 +3,7 @@ import cors from "cors";
 import userRouter from './routers/user.router';
 import projectRouter from './routers/project.router';
 import clientRouter from './routers/client.router';
+import draftRouter from './routers/draft.router';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -27,3 +28,4 @@ app.use(cors({
 app.use("/api/users", userRouter)
 app.use("/api/projects", projectRouter)
 app.use("/api/clients", clientRouter)
+app.use("/api/drafts", draftRouter)

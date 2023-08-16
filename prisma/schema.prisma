@@ -37,7 +37,7 @@ model client {
 
 model draft {
   draftid     String @id
-  draft       String @db.LongText
+  draft       Json
   creator     String
   draftholder user   @relation(fields: [creator], references: [iduser], onUpdate: Restrict, map: "creator")
 
@@ -46,7 +46,7 @@ model draft {
 
 model clientpm {
   clientpmid String    @id @default(uuid())
-  email      String    @db.VarChar(55)
+  email      String    @unique @db.VarChar(55)
   name       String?   @db.VarChar(45)
   clientid   String
   company    client    @relation(fields: [clientid], references: [clientid], onUpdate: Restrict, map: "clientID")
