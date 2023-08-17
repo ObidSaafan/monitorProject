@@ -15,12 +15,43 @@ const prisma = new PrismaClient()
 const router = Router();
 
 
-router.get("/",asyncHandler(
-    async (req, res) => {
-      const projects = await prisma.project.findMany();
-        res.send(projects);
-    }
-  ))
+router.get("/", asyncHandler(async (req, res) => {
+  const projects = await prisma.project.findMany();
+
+  const projectsWithCompletion = await Promise.all(
+    projects.map(async project => {
+      const latestRevenue = await prisma.revenuerecognized.findFirst({
+        where: { idproject: project.idproject },
+        orderBy: { date: 'desc' },
+      });
+
+      const contractValue = project.contractvalue;
+      const completion = latestRevenue
+        ? (latestRevenue.value / contractValue) * 100
+        : 0; // Default to 0 if no revenue recognized entry found
+
+      return {
+        id: project.idproject,
+        projectname: project.projectname,
+        projectstatus: project.projectstatus,
+        projectmanager:project.projectmanager,
+        contract: contractValue,
+        completion: completion
+      };
+    })
+  );
+
+  res.send(projectsWithCompletion);
+}));
+
+
+
+//router.get("/",asyncHandler(
+  //  async (req, res) => {
+    //  const projects = await prisma.project.findMany();
+      //  res.send(projects);
+ //   }
+  //))
 
 router.get('/information', async (req, res) => {
   try {

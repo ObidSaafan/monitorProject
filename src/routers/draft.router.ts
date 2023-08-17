@@ -1,49 +1,63 @@
 import express from 'express';
+import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import { PrismaClient } from '@prisma/client'; // Import Prisma types
 
 import authenticateToken from '../middleware/authentication';
 const prisma = new PrismaClient();
-const router = express.Router(); // Create an instance of the router
+const router = express.Router();
 
-// Middleware for the router
 router.use(express.json());
-
-// Apply authentication middleware to the router
 router.use(authenticateToken);
 
-// Define the API endpoint for saving drafts
 router.post('/save-draft', async (req: express.Request, res: express.Response) => {
   //try {
-    const { id: draftId, draft } = req.body;
-    const userId = req.user?.id; // Assuming you have the user's ID available
+    const { draftid, draft } = req.body; // Use the received draftid
+    const userId = req.user?.id;
 
-    // Ensure that userId is defined before proceeding
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: User ID is missing.' });
     }
+    // Convert the draft object to a JSON string
+    const draftJson = JSON.stringify(draft);
+    if (draftid) {
+    const existingDraft = await prisma.draft.findUnique({
+      where: { draftid: draftid },
+    });
 
-    // Define the draft creation input based on your Prisma schema
-    const draftInput = {
-      draftid: uuidv4(),
-      draft: draft,
-      creator: userId, // Use the user's ID here
-    };
+    // Check if the draft with draftid exists
+    if (!existingDraft) {
+      return res.status(404).json({ error: 'Draft not found.' });
+    }
 
-    if (draftId) {
+    // Check if the creator is the same as the user performing the update
+    if (existingDraft.creator !== userId) {
+      return res.status(403).json({ error: 'Forbidden: You are not the creator of this draft.' });
+    }
+
+
+
+
+    
       // Update existing draft
       const updatedDraft = await prisma.draft.update({
-        where: { draftid: draftId },
-        data: {
-          draft: draft,
-        },
-      });
+      where: { draftid: draftid },
+      data: {
+        draft: draftJson,
+      },
+    });
 
       res.json({ success: true, draft: updatedDraft });
-    } else {
+    } 
+    else {
       // Create new draft
+      const draftInput = {
+        draftid: uuidv4(),
+        draft: draftJson,
+        creator: userId, // Use the user's ID here
+      };
+  
       const newDraft = await prisma.draft.create({
-        data: draftInput,
+        data: draftInput
       });
 
       res.json({ success: true, draft: newDraft });
@@ -54,4 +68,4 @@ router.post('/save-draft', async (req: express.Request, res: express.Response) =
 //}
 );
 
-export default router; // Export the router instance
+export default router;
