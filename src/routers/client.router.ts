@@ -1,16 +1,15 @@
-import {Router} from 'express';
-import jwt from 'jsonwebtoken';
-import asyncHandler from 'express-async-handler'
-import { HTTP_BAD_REQUEST } from '../constants/http_status';
-import { PrismaClient, client,clientpm } from '@prisma/client'
+import { Router } from "express";
+import jwt from "jsonwebtoken";
+import asyncHandler from "express-async-handler";
+import { HTTP_BAD_REQUEST } from "../constants/http_status";
+import { PrismaClient, client, clientpm } from "@prisma/client";
 
-
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 const router = Router();
 
-// so they can add a new client on their own later, + needed this to make it easier to create a project since there is a foriegn key 
-//make a client pm add 
+// so they can add a new client on their own later, + needed this to make it easier to create a project since there is a foriegn key
+//make a client pm add
 /////////////////////////////
 
 /*
@@ -111,72 +110,78 @@ router.get('/clientNmanagers', asyncHandler(
   }
 ));
 */
-router.post('/add', asyncHandler(async (req, res) => {
-  const { clientName, pmName, pmEmail } = req.body;
+router.post(
+  "/add",
+  asyncHandler(async (req, res) => {
+    const { clientName, pmName, pmEmail } = req.body;
 
-  try {
-    // Check if the client exists
-    const existingClient = await prisma.client.findUnique({
-      where: {
-        clientname: clientName,
-      },
-    });
-
-    let clientId;
-
-    if (existingClient) {
-      clientId = existingClient.clientid; // Use the existing client's ID
-    } else {
-      // Add a new client if it doesn't exist
-      const newClient = await prisma.client.create({
-        data: {
-          clientname: clientName.toLowerCase(),
+    try {
+      // Check if the client exists
+      const existingClient = await prisma.client.findUnique({
+        where: {
+          clientname: clientName,
         },
       });
 
-      clientId = newClient.clientid;
-    }
+      let clientId;
 
-    // Check if the project manager exists
-    const existingPM = await prisma.clientpm.findFirst({
-      where: {
-        email: pmEmail,
-      },
-    });
+      if (existingClient) {
+        clientId = existingClient.clientid; // Use the existing client's ID
+      } else {
+        // Add a new client if it doesn't exist
+        const newClient = await prisma.client.create({
+          data: {
+            clientname: clientName.toLowerCase(),
+          },
+        });
 
-    if (existingPM) {
-      // Project manager already exists for some client
-      if (existingPM.clientid !== clientId) {
-        // If the existing project manager belongs to a different client, return an error
-        res.status(HTTP_BAD_REQUEST).send('Project manager already exists for a different client.');
+        clientId = newClient.clientid;
+      }
+
+      // Check if the project manager exists
+      const existingPM = await prisma.clientpm.findFirst({
+        where: {
+          email: pmEmail,
+        },
+      });
+
+      if (existingPM) {
+        // Project manager already exists for some client
+        if (existingPM.clientid !== clientId) {
+          // If the existing project manager belongs to a different client, return an error
+          res
+            .status(HTTP_BAD_REQUEST)
+            .send("Project manager already exists for a different client.");
+          return;
+        }
+        // Otherwise, it's an existing project manager associated with the same client.
+        // You can choose to update the project manager details here if needed.
+        res.send({ message: "Project Manager already exists for the client." });
         return;
       }
-      // Otherwise, it's an existing project manager associated with the same client.
-      // You can choose to update the project manager details here if needed.
-      res.send({ message: 'Project Manager already exists for the client.' });
-      return;
+
+      // Add a new project manager associated with the client (either existing or newly created)
+      const newPM = await prisma.clientpm.create({
+        // TODO: test the remove the newPM
+        data: {
+          name: pmName.toLowerCase(),
+          email: pmEmail.toLowerCase(),
+          clientid: clientId, // Use the client ID (either existing or newly created)
+        },
+      });
+
+      res.send({
+        message: "Client and/or Project Manager added successfully.",
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-
-    // Add a new project manager associated with the client (either existing or newly created)
-    const newPM = await prisma.clientpm.create({ // TODO: test the remove the newPM
-      data: {
-        name: pmName.toLowerCase(),
-        email: pmEmail.toLowerCase(),
-        clientid: clientId, // Use the client ID (either existing or newly created)
-      },
-    });
-
-    res.send({ message: 'Client and/or Project Manager added successfully.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-}));
-
-
+  })
+);
 
 //
-// we can have this approach or the other one were we make all in the same request, other approach send client and pms in the company 
+// we can have this approach or the other one were we make all in the same request, other approach send client and pms in the company
 /*
 router.get('/getpm', asyncHandler(
   async (req, res) => {
@@ -217,18 +222,21 @@ router.post('/addpm', asyncHandler(
 }
 ));*/
 
+const generateTokenReponse = (client: client) => {
+  const token = jwt.sign(
+    {
+      clientname: client.clientname,
+    },
+    process.env.JWT_SECRET!,
+    {
+      expiresIn: "30d",
+    }
+  );
 
-  const generateTokenReponse = (client : client) => {
-    const token = jwt.sign({
-      clientname:client.clientname
-      },process.env.JWT_SECRET!,{
-      expiresIn:"30d"
-    });
-  
-    return {
-      clientname:client.clientname,
-      token: token
-    };
-  }
+  return {
+    clientname: client.clientname,
+    token: token,
+  };
+};
 
-export default router; 
+export default router;

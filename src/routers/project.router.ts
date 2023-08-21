@@ -1,94 +1,96 @@
-import {Router} from 'express';
-import jwt from 'jsonwebtoken';
-import asyncHandler from 'express-async-handler'
-import { HTTP_BAD_REQUEST } from '../constants/http_status';
-import { allowedProjectTypes,allowedProjectStatuses,allowedContractStatuses,allowedCurrencies } from '../constants/allowed_types';
-import { PrismaClient, project} from '@prisma/client'
+import { Router } from "express";
+import jwt from "jsonwebtoken";
+import asyncHandler from "express-async-handler";
+import { HTTP_BAD_REQUEST } from "../constants/http_status";
+import {
+  allowedProjectTypes,
+  allowedProjectStatuses,
+  allowedContractStatuses,
+  allowedCurrencies,
+} from "../constants/allowed_types";
+import { PrismaClient, project } from "@prisma/client";
 
+const bodyParser = require("body-parser");
 
-
-const bodyParser = require('body-parser');
-
-
-
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 const router = Router();
 
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const projects = await prisma.project.findMany();
 
-router.get("/", asyncHandler(async (req, res) => {
-  const projects = await prisma.project.findMany();
+    const projectsWithCompletion = await Promise.all(
+      projects.map(async (project) => {
+        const latestRevenue = await prisma.revenuerecognized.findFirst({
+          where: { idproject: project.idproject },
+          orderBy: { date: "desc" },
+        });
 
-  const projectsWithCompletion = await Promise.all(
-    projects.map(async project => {
-      const latestRevenue = await prisma.revenuerecognized.findFirst({
-        where: { idproject: project.idproject },
-        orderBy: { date: 'desc' },
+        const contractValue = project.contractvalue;
+        const completion = latestRevenue
+          ? (latestRevenue.value / contractValue) * 100
+          : 0; // Default to 0 if no revenue recognized entry found
+
+        // Fetch the project manager's name from the user table
+        const projectManager = await prisma.user.findUnique({
+          where: { iduser: project.projectmanager },
+        });
+
+        return {
+          id: project.idproject,
+          projectname: project.projectname,
+          projectstatus: project.projectstatus,
+          projectmanager: projectManager
+            ? projectManager.firstname + " " + projectManager.lastname
+            : null,
+          contract: contractValue,
+          currency: project.currency,
+          completion: completion,
+        };
+      })
+    );
+
+    res.json(projectsWithCompletion);
+  })
+);
+
+router.get(
+  "/projectType/:projectType/date/:date/clientName/:clientName",
+  async (req, res) => {
+    const { projectType, date, clientName } = req.params;
+
+    try {
+      const project = await prisma.project.findUnique({
+        where: { idproject: `${projectType}/${date}/${clientName}` },
+        include: {
+          paymentmilestone: true, // Include related data from paymentmilestone table
+          revenuerecognized: true, // Include related data from revenuerecognized table
+          budgetedcost: true, // Include related data from budgetedcost table
+          actualspend: true, // Include related data from actualspend table
+        },
       });
 
-      const contractValue = project.contractvalue;
-      const completion = latestRevenue
-        ? (latestRevenue.value / contractValue) * 100
-        : 0; // Default to 0 if no revenue recognized entry found
+      if (!project) {
+        return res.status(404).send("Not Found");
+      }
 
-      // Fetch the project manager's name from the user table
-      const projectManager = await prisma.user.findUnique({
-        where: { iduser: project.projectmanager },
-      });
-
-      return {
-        id: project.idproject,
-        projectname: project.projectname,
-        projectstatus: project.projectstatus,
-        projectmanager: projectManager ? projectManager.firstname +" "+ projectManager.lastname : null,
-        contract: contractValue,
-        currency: project.currency,
-        completion: completion
-      };
-    })
-  );
-
-  res.json(projectsWithCompletion);
-}));
-
-
-router.get("/projectType/:projectType/date/:date/clientName/:clientName", async (req, res) => {
-  const { projectType, date, clientName } = req.params;
-
-  try {
-    const project = await prisma.project.findUnique({
-      where: { idproject: `${projectType}/${date}/${clientName}` },
-      include: {
-        paymentmilestone: true, // Include related data from paymentmilestone table
-        revenuerecognized: true, // Include related data from revenuerecognized table
-        budgetedcost: true, // Include related data from budgetedcost table
-        actualspend: true, // Include related data from actualspend table
-      },
-    });
-
-    if (!project) {
-      return res.status(404).send('Not Found');
+      res.json(project);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "An error occurred while fetching data." });
     }
-
-    res.json(project);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'An error occurred while fetching data.' });
   }
-});
-
-
-
-
-
+);
 
 //router.get("/",asyncHandler(
-  //  async (req, res) => {
-    //  const projects = await prisma.project.findMany();
-      //  res.send(projects);
- //   }
-  //))
+//  async (req, res) => {
+//  const projects = await prisma.project.findMany();
+//  res.send(projects);
+//   }
+//))
 
-router.get('/information', async (req, res) => {
+router.get("/information", async (req, res) => {
   try {
     const clients = await prisma.client.findMany({
       include: {
@@ -105,8 +107,8 @@ router.get('/information', async (req, res) => {
     });
     const pms = await prisma.user.findMany({
       where: {
-      roleid: "2"
-      }
+        roleid: "2",
+      },
     });
     const dropdownOptions = {
       contractStatuses: allowedContractStatuses,
@@ -116,13 +118,13 @@ router.get('/information', async (req, res) => {
     };
 
     // Send both dropdownOptions and dataToSend in the response
-    res.json({ dropdownOptions, clientsdata,pms });
+    res.json({ dropdownOptions, clientsdata, pms });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
-  /*router.get("/search/:searchTerm", asyncHandler(
+/*router.get("/search/:searchTerm", asyncHandler(
     async (req, res) => {
         const result = await prisma.project.findMany({
             where: {
@@ -156,121 +158,138 @@ router.get("/Drafts",asyncHandler(
   }
 ))
 */
-router.use(bodyParser.json()); //todo check if removeable 
+router.use(bodyParser.json()); //todo check if removeable
 
+router.post("/validate25", (req, res) => {
+  const { contractStatus } = req.body;
 
-router.post('/validate25', (req, res) => {
-    const { contractStatus } = req.body;
-  
-    if (!allowedContractStatuses.includes(contractStatus)) {
-      return res.status(400).json({ error: 'Invalid contract status.' });
-    }
-  
-    res.json({ success: true });
-});
-      
-router.post('/validate50', (req, res) => {
-  const { projectStatus,projectType } = req.body;
-
-  if (!allowedProjectStatuses.includes(projectStatus)) {
-    return res.status(400).json({ error: 'Invalid project status.' });
+  if (!allowedContractStatuses.includes(contractStatus)) {
+    return res.status(400).json({ error: "Invalid contract status." });
   }
-  if (!allowedProjectTypes.includes(projectType)) {
-    return res.status(400).json({ error: 'Invalid project type.' });
-  }
-   
+
   res.json({ success: true });
 });
 
-router.post('/validate75', (req, res) => {
+router.post("/validate50", (req, res) => {
+  const { projectStatus, projectType } = req.body;
+
+  if (!allowedProjectStatuses.includes(projectStatus)) {
+    return res.status(400).json({ error: "Invalid project status." });
+  }
+  if (!allowedProjectTypes.includes(projectType)) {
+    return res.status(400).json({ error: "Invalid project type." });
+  }
+
+  res.json({ success: true });
+});
+
+router.post("/validate75", (req, res) => {
   const { Currency, paymentMilestones } = req.body;
 
   if (!allowedCurrencies.includes(Currency)) {
-    return res.status(400).json({ error: 'Invalid currency.' });
+    return res.status(400).json({ error: "Invalid currency." });
   }
 
   // Calculate the total sum of payment terms dynamically
-  const totalPaymentTerms = paymentMilestones.reduce((sum: number, term: { value: number }) => sum + term.value, 0);
-
+  const totalPaymentTerms = paymentMilestones.reduce(
+    (sum: number, term: { value: number }) => sum + term.value,
+    0
+  );
 
   if (totalPaymentTerms !== 100) {
-    return res.status(400).json({ error: 'Invalid payment terms total.' });
+    return res.status(400).json({ error: "Invalid payment terms total." });
   }
 
   res.json({ success: true });
 });
 
+router.post(
+  "/create",
+  asyncHandler(async (req, res) => {
+    const {
+      projectName,
+      Description,
+      projectType,
+      projectStatus,
+      projectStartDate,
+      durationOfProject,
+      plannedCompletionDate,
+      Currency,
+      contractValue,
+      contractStatus,
+      referenceNumber,
+      expectedProfit,
+      actualProfit,
+      projectmanager,
+      clientName,
+      paymentMilestones,
+      budgetedcosts,
+      actualspend,
+      revenuerecognized,
+      projectmanagerclient,
+    } = req.body;
 
-router.post('/create', asyncHandler(
-    async (req, res) => {
-      const {projectName,Description, projectType, projectStatus, projectStartDate, durationOfProject,plannedCompletionDate, Currency,contractValue,contractStatus,referenceNumber,expectedProfit, actualProfit,projectmanager,clientName, paymentMilestones,budgetedcosts,actualspend,revenuerecognized,projectmanagerclient} = req.body;
-      
+    let project;
+    if (projectName) {
+      project = await prisma.project.findFirst({
+        where: {
+          projectname: projectName,
+        },
+      });
+    }
 
-      let project;
-      if (projectName) {
-        project = await prisma.project.findFirst({
-          where: {
-            projectname: projectName,
-          },
-        });
-      }
-      
-      if (project) {
-        res.status(HTTP_BAD_REQUEST).send('Project already exists!');
-        return;
-      }
-      
-      
-      // paymentmilestoneValue,paymentmilestoneDesc
-      
-      let client;
-      if (clientName) {
-        client = await prisma.client.findUnique({
-          where: {
-            clientname: clientName,
-          },
-        });
-      }
-      
-      if (!client) {
-        // Handle the case where the client doesn't exist
-        res.status(HTTP_BAD_REQUEST).send('Client does not exist.');
-        return;
-      }
-      
+    if (project) {
+      res.status(HTTP_BAD_REQUEST).send("Project already exists!");
+      return;
+    }
 
-      let pm;
-      if (projectmanager) {
-        pm = await prisma.user.findFirst({
-          where: {
-             email: projectmanager,
-          },
-        });
-      }
-      
-      if (!pm) {
-        // Handle the case where the project manager doesn't exist
-        res.status(HTTP_BAD_REQUEST).send('Project manager does not exist.');
-        return;
-      }
-      
+    // paymentmilestoneValue,paymentmilestoneDesc
 
-      
-      let cpm;
-      if (projectmanagerclient) {
-        cpm = await prisma.clientpm.findFirst({
-          where: {
-            email: projectmanagerclient,
-          },
-        });
-      }
-      
-      if (!cpm) {
-        // Handle the case where the client pm doesn't exist
-        res.status(HTTP_BAD_REQUEST).send('Client pm does not exist.');
-        return;
-      }
-     /* const newProject: project = await prisma.project.create({
+    let client;
+    if (clientName) {
+      client = await prisma.client.findUnique({
+        where: {
+          clientname: clientName,
+        },
+      });
+    }
+
+    if (!client) {
+      // Handle the case where the client doesn't exist
+      res.status(HTTP_BAD_REQUEST).send("Client does not exist.");
+      return;
+    }
+
+    let pm;
+    if (projectmanager) {
+      pm = await prisma.user.findFirst({
+        where: {
+          email: projectmanager,
+        },
+      });
+    }
+
+    if (!pm) {
+      // Handle the case where the project manager doesn't exist
+      res.status(HTTP_BAD_REQUEST).send("Project manager does not exist.");
+      return;
+    }
+
+    let cpm;
+    if (projectmanagerclient) {
+      cpm = await prisma.clientpm.findFirst({
+        where: {
+          email: projectmanagerclient,
+        },
+      });
+    }
+
+    if (!cpm) {
+      // Handle the case where the client pm doesn't exist
+      res.status(HTTP_BAD_REQUEST).send("Client pm does not exist.");
+      return;
+    }
+    /* const newProject: project = await prisma.project.create({
         data:{
         idproject: projectType + "/"+ projectStartDate +"/"+ clientName, 
         //add sequence number after client name to cover the case where everything is the same 
@@ -298,7 +317,8 @@ router.post('/create', asyncHandler(
     try {
       const newProject = await prisma.project.create({
         data: {
-          idproject: projectType + "/" + projectStartDate + "/" + client.clientname, // Use client.clientid
+          idproject:
+            projectType + "/" + projectStartDate + "/" + client.clientname, // Use client.clientid
           projectname: projectName,
           description: Description,
           projecttype: projectType,
@@ -316,18 +336,25 @@ router.post('/create', asyncHandler(
           clientpmid: cpm.clientpmid,
           clientid: client.clientid, // Use client.clientid
           paymentmilestone: {
-            create: paymentMilestones.map((milestone: { text: string; value: number }) => ({
-              milestonetext: milestone.text,
-              milestonevalue: milestone.value,
-            }))},
+            create: paymentMilestones.map(
+              (milestone: { text: string; value: number }) => ({
+                milestonetext: milestone.text,
+                milestonevalue: milestone.value,
+              })
+            ),
+          },
           budgetedcost: {
-              create: budgetedcosts.map((cost: { text: string; value: number }) => ({
+            create: budgetedcosts.map(
+              (cost: { text: string; value: number }) => ({
                 source: cost.text,
                 value: cost.value,
-            }))},
-     }});
-      
-       /* const createdPaymentMilestones = await Promise.all(
+              })
+            ),
+          },
+        },
+      });
+
+      /* const createdPaymentMilestones = await Promise.all(
           paymentMilestones.map(async (milestone: { value: number; description: string }) => {
             return await prisma.paymentmilestone.create({
               data: {
@@ -342,56 +369,59 @@ router.post('/create', asyncHandler(
       res.status(201).send(newProject);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ error: "Internal Server Error" });
     }
-  }
-));
+  })
+);
 
-
-  const generateTokenReponse = (project : project) => {
-    const token = jwt.sign({
+const generateTokenReponse = (project: project) => {
+  const token = jwt.sign(
+    {
       idproject: project.idproject, //NAME OF CLIENT MUST BE UNIQUE TO MAKE THIS WORK ,put the corrospeonding name of client at the end
-      projectname: project.projectname, 
-      description:project.description,
-      projecttype:project.projecttype, 
-      projectstatus:project.projectstatus, 
-      projectstartdate:project.projectstartdate, 
-      durationOfproject:project.durationOfproject,
-      plannedcompletiondate:project.plannedcompletiondate,
-      currency:project.currency,
-      contractvalue:project.contractvalue,
-      contractstatus:project.contractstatus,
-      referencenumber:project.referencenumber,
-      expectedprofit:project.expectedprofit,
-      actualprofit:project.actualprofit,
+      projectname: project.projectname,
+      description: project.description,
+      projecttype: project.projecttype,
+      projectstatus: project.projectstatus,
+      projectstartdate: project.projectstartdate,
+      durationOfproject: project.durationOfproject,
+      plannedcompletiondate: project.plannedcompletiondate,
+      currency: project.currency,
+      contractvalue: project.contractvalue,
+      contractstatus: project.contractstatus,
+      referencenumber: project.referencenumber,
+      expectedprofit: project.expectedprofit,
+      actualprofit: project.actualprofit,
       projectmanager: project.projectmanager,
-      clientid : project.clientid
-      },process.env.JWT_SECRET!,{
-      expiresIn:"30d"
-    });
-  
-    return {
-      idproject: project.idproject, //todo check if removeable this and webtoken here
-      projectname: project.projectname, 
-      description:project.description,
-      projecttype:project.projecttype, 
-      projectstatus:project.projectstatus, 
-      projectstartdate:project.projectstartdate, 
-      durationOfproject:project.durationOfproject,
-      plannedcompletiondate:project.plannedcompletiondate,
-      currency:project.currency,
-      contractvalue:project.contractvalue,
-      contractstatus:project.contractstatus,
-      referencenumber:project.referencenumber,
-      expectedprofit:project.expectedprofit,
-      actualprofit:project.actualprofit,
-      projectmanager: project.projectmanager,
-      clientid : project.clientid,
-      token: token
-    };
-  }
+      clientid: project.clientid,
+    },
+    process.env.JWT_SECRET!,
+    {
+      expiresIn: "30d",
+    }
+  );
 
-export default router; 
+  return {
+    idproject: project.idproject, //todo check if removeable this and webtoken here
+    projectname: project.projectname,
+    description: project.description,
+    projecttype: project.projecttype,
+    projectstatus: project.projectstatus,
+    projectstartdate: project.projectstartdate,
+    durationOfproject: project.durationOfproject,
+    plannedcompletiondate: project.plannedcompletiondate,
+    currency: project.currency,
+    contractvalue: project.contractvalue,
+    contractstatus: project.contractstatus,
+    referencenumber: project.referencenumber,
+    expectedprofit: project.expectedprofit,
+    actualprofit: project.actualprofit,
+    projectmanager: project.projectmanager,
+    clientid: project.clientid,
+    token: token,
+  };
+};
+
+export default router;
 
 /*
 [
