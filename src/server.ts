@@ -18,12 +18,12 @@ app.listen(port, () => {
 app.use(express.json());
 
 // TODO: do we need cors?
-app.use(
-  cors({
-    credentials: true,
-    origin: ["http://localhost:4200"], //4200 for angular app
-  })
-);
+// app.use(
+//   cors({
+//     credentials: true,
+//     origin: ["http://localhost:4200"], //4200 for angular app
+//   })
+// );
 
 app.use("/api/users", userRouter);
 app.use("/api/projects", projectRouter);
