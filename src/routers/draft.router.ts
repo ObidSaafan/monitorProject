@@ -9,6 +9,30 @@ const router = express.Router();
 router.use(express.json());
 router.use(authenticateToken);
 
+
+router.get('/viewall', async (req, res) => {
+  try {
+    const userId = req.user?.id; // Get the user's ID from the authenticated user
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: User ID is missing.' });
+    }
+
+    const drafts = await prisma.draft.findMany({
+      where: {
+        creator: userId, // Filter drafts where the creator is the logged-in user
+      },
+    });
+
+    // Send drafts in the response
+    res.json(drafts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 router.post('/save-draft', async (req: express.Request, res: express.Response) => {
   //try {
     const { draftid, draft } = req.body; // Use the received draftid
@@ -37,7 +61,6 @@ router.post('/save-draft', async (req: express.Request, res: express.Response) =
 
 
 
-    
       // Update existing draft
       const updatedDraft = await prisma.draft.update({
       where: { draftid: draftid },

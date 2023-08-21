@@ -30,19 +30,54 @@ router.get("/", asyncHandler(async (req, res) => {
         ? (latestRevenue.value / contractValue) * 100
         : 0; // Default to 0 if no revenue recognized entry found
 
+      // Fetch the project manager's name from the user table
+      const projectManager = await prisma.user.findUnique({
+        where: { iduser: project.projectmanager },
+      });
+
       return {
         id: project.idproject,
         projectname: project.projectname,
         projectstatus: project.projectstatus,
-        projectmanager:project.projectmanager,
+        projectmanager: projectManager ? projectManager.firstname +" "+ projectManager.lastname : null,
         contract: contractValue,
+        currency: project.currency,
         completion: completion
       };
     })
   );
 
-  res.send(projectsWithCompletion);
+  res.json(projectsWithCompletion);
 }));
+
+
+router.get("/projectType/:projectType/date/:date/clientName/:clientName", async (req, res) => {
+  const { projectType, date, clientName } = req.params;
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { idproject: `${projectType}/${date}/${clientName}` },
+      include: {
+        paymentmilestone: true, // Include related data from paymentmilestone table
+        revenuerecognized: true, // Include related data from revenuerecognized table
+        budgetedcost: true, // Include related data from budgetedcost table
+        actualspend: true, // Include related data from actualspend table
+      },
+    });
+
+    if (!project) {
+      return res.status(404).send('Not Found');
+    }
+
+    res.json(project);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'An error occurred while fetching data.' });
+  }
+});
+
+
+
 
 
 
@@ -121,7 +156,7 @@ router.get("/Drafts",asyncHandler(
   }
 ))
 */
-router.use(bodyParser.json());
+router.use(bodyParser.json()); //todo check if removeable 
 
 
 router.post('/validate25', (req, res) => {
@@ -168,10 +203,10 @@ router.post('/validate75', (req, res) => {
 
 router.post('/create', asyncHandler(
     async (req, res) => {
-      const {projectName,Description, projectType, projectStatus, projectStartDate, durationOfProject,plannedCompletionDate, Currency,contractValue,contractStatus,referenceNumber,expectedProfit, actualProfit,projectmanager,clientName, paymentMilestones,budgetedcosts,projectmanagerclient} = req.body;
+      const {projectName,Description, projectType, projectStatus, projectStartDate, durationOfProject,plannedCompletionDate, Currency,contractValue,contractStatus,referenceNumber,expectedProfit, actualProfit,projectmanager,clientName, paymentMilestones,budgetedcosts,actualspend,revenuerecognized,projectmanagerclient} = req.body;
       
-      let project;
 
+      let project;
       if (projectName) {
         project = await prisma.project.findFirst({
           where: {
@@ -189,7 +224,6 @@ router.post('/create', asyncHandler(
       // paymentmilestoneValue,paymentmilestoneDesc
       
       let client;
-
       if (clientName) {
         client = await prisma.client.findUnique({
           where: {
@@ -206,7 +240,6 @@ router.post('/create', asyncHandler(
       
 
       let pm;
-
       if (projectmanager) {
         pm = await prisma.user.findFirst({
           where: {
@@ -224,7 +257,6 @@ router.post('/create', asyncHandler(
 
       
       let cpm;
-
       if (projectmanagerclient) {
         cpm = await prisma.clientpm.findFirst({
           where: {
@@ -288,12 +320,11 @@ router.post('/create', asyncHandler(
               milestonetext: milestone.text,
               milestonevalue: milestone.value,
             }))},
-            budgetedcost: {
+          budgetedcost: {
               create: budgetedcosts.map((cost: { text: string; value: number }) => ({
                 source: cost.text,
                 value: cost.value,
-              })),
-        },
+            }))},
      }});
       
        /* const createdPaymentMilestones = await Promise.all(
@@ -340,7 +371,7 @@ router.post('/create', asyncHandler(
     });
   
     return {
-      idproject: project.idproject, //NAME OF CLIENT MUST BE UNIQUE TO MAKE THIS WORK ,put the corrospeonding name of client at the end
+      idproject: project.idproject, //todo check if removeable this and webtoken here
       projectname: project.projectname, 
       description:project.description,
       projecttype:project.projecttype, 
