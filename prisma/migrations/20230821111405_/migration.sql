@@ -31,12 +31,23 @@ CREATE TABLE `client` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `draft` (
+    `draftid` VARCHAR(191) NOT NULL,
+    `draft` JSON NOT NULL,
+    `creator` VARCHAR(191) NOT NULL,
+
+    INDEX `creator_idx`(`creator`),
+    PRIMARY KEY (`draftid`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `clientpm` (
     `clientpmid` VARCHAR(191) NOT NULL,
     `email` VARCHAR(55) NOT NULL,
     `name` VARCHAR(45) NULL,
     `clientid` VARCHAR(191) NOT NULL,
 
+    UNIQUE INDEX `clientpm_email_key`(`email`),
     INDEX `clientID_idx`(`clientid`),
     PRIMARY KEY (`clientpmid`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -86,6 +97,7 @@ CREATE TABLE `project` (
     `expectedprofit` DOUBLE NOT NULL,
     `actualprofit` DOUBLE NULL,
     `clientid` VARCHAR(191) NOT NULL,
+    `comments` VARCHAR(191) NULL,
 
     UNIQUE INDEX `project_idproject_key`(`idproject`),
     INDEX `fk_project_client`(`clientid`),
@@ -135,6 +147,9 @@ ALTER TABLE `actualspend` ADD CONSTRAINT `fk_actualspend_project` FOREIGN KEY (`
 ALTER TABLE `budgetedcost` ADD CONSTRAINT `fk_budgetedcost_project` FOREIGN KEY (`idproject`) REFERENCES `project`(`idproject`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
+ALTER TABLE `draft` ADD CONSTRAINT `creator` FOREIGN KEY (`creator`) REFERENCES `user`(`iduser`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- AddForeignKey
 ALTER TABLE `clientpm` ADD CONSTRAINT `clientID` FOREIGN KEY (`clientid`) REFERENCES `client`(`clientid`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- AddForeignKey
@@ -157,4 +172,3 @@ ALTER TABLE `revenuerecognized` ADD CONSTRAINT `fk_revenuerecognized_project` FO
 
 -- AddForeignKey
 ALTER TABLE `user` ADD CONSTRAINT `roleID` FOREIGN KEY (`roleid`) REFERENCES `role`(`idrole`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
