@@ -17,15 +17,6 @@ router.post(
       where: {
         email: Email,
       },
-      select: {
-        //TODO: delete this
-        iduser: true,
-        email: true,
-        password: true,
-        firstname: true,
-        lastname: true,
-        roleid: true,
-      },
     });
     //look using mysql in db for username and password maybe need orm or keep rawdata
     if (user && (await bcrypt.compare(Password, user.password))) {
