@@ -1,5 +1,4 @@
 import { Router, Express } from "express";
-import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import { HTTP_BAD_REQUEST } from "../constants/http_status";
 import {
@@ -8,12 +7,15 @@ import {
   allowedContractStatuses,
   allowedCurrencies,
 } from "../constants/allowed_types";
-import { PrismaClient, approvalStatus, project } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import authenticateToken from "../middleware/authentication";
 
 const bodyParser = require("body-parser");
 
 const prisma = new PrismaClient();
 const router = Router();
+
+router.use(authenticateToken);
 
 router.get(
   "/",
@@ -59,6 +61,7 @@ router.get(
   "/projectType/:projectType/date/:date/clientName/:clientName",
   async (req, res) => {
     const { projectType, date, clientName } = req.params;
+    const userId = req.user?.id;
 
     try {
       const project = await prisma.project.findUnique({
@@ -74,8 +77,19 @@ router.get(
       if (!project) {
         return res.status(404).send("Not Found");
       }
-
-      res.json(project);
+      const updaterequest = await prisma.updateapproval.findUnique({
+        where: { id: project.idproject },
+      });
+      if (
+        !userId ||
+        (userId !== updaterequest?.administrator &&
+          userId !== updaterequest?.ucreator)
+      ) {
+        return res.status(401).json({
+          error: "Unauthorized: User ID is missing or not authorized.",
+        });
+      }
+      res.json({ success: true, project, updaterequest });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "An error occurred while fetching data." });
@@ -396,79 +410,130 @@ router.post(
         return res.status(404).send("Not Found");
       }
 
+      const {
+        revenuerecognized,
+        actualProfit,
+        actualspend,
+        invoice,
+        budgetedcost,
+        // ... add other properties as needed
+      } = information;
+      const draftJson = {
+        revenuerecognized,
+        actualProfit,
+        actualspend,
+        invoice,
+        budgetedcost,
+        // ... add other properties as needed
+      };
       // Convert the draft object to a JSON string
-      const draftJson = JSON.stringify(information);
+      const draftJsonString = JSON.stringify(draftJson);
 
       // Update existing draft
       const updatedDraft = await prisma.updateapproval.create({
         data: {
           id: project.idproject,
-          information: draftJson,
+          information: draftJsonString,
           ucreator: userId,
           administrator: project.projectmanager,
           approval: "Not_Approved",
         },
       });
-      //TODO approval system still need to be implemented
+
+      //TODO approval system still need to be implemented as in sending admin notification and they can approve or not and add comment and the approval removal fix thingy
       res.json({ success: true, draft: updatedDraft });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "An error occurred while fetching data." });
+      res.status(500).json({ error: "An error occurred" });
     }
   }
+
   //catch (error) {
   //res.status(500).json({ error: 'Failed to save draft.' });
   //}
   //}
 );
+//TODO remove this , i already merged it with the normal get for a single
+//TODO project so they can view any update request alongside the project details
+// router.get(
+//   "/view/update/projectType/:projectType/date/:date/clientName/:clientName",
+//   async (req, res) => {
+//     const userId = req.user?.id;
+//     const { projectType, date, clientName } = req.params;
 
+//     try {
+//       const project = await prisma.project.findUnique({
+//         where: { idproject: `${projectType}/${date}/${clientName}` },
+//       });
+//       if (!project) {
+//         return res.status(404).send("Not Found");
+//       }
+//       const updaterequest = await prisma.updateapproval.findUnique({
+//         where: { id: project.idproject },
+//       });
+//       if (
+//         !userId ||
+//         userId != updaterequest?.administrator ||
+//         userId != updaterequest?.ucreator
+//       ) {
+//         return res
+//           .status(401)
+//           .json({ error: "Unauthorized: User ID is missing." });
+//       }
+//       res.json({ success: true, project, updaterequest });
+//     } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ error: "An error occurred while fetching data." });
+//     }
+//   }
+// );
 //TODO : remove generate token
-const generateTokenReponse = (project: project) => {
-  const token = jwt.sign(
-    {
-      idproject: project.idproject, //NAME OF CLIENT MUST BE UNIQUE TO MAKE THIS WORK ,put the corrospeonding name of client at the end
-      projectname: project.projectname,
-      description: project.description,
-      projecttype: project.projecttype,
-      projectstatus: project.projectstatus,
-      projectstartdate: project.projectstartdate,
-      durationOfproject: project.durationOfproject,
-      plannedcompletiondate: project.plannedcompletiondate,
-      currency: project.currency,
-      contractvalue: project.contractvalue,
-      contractstatus: project.contractstatus,
-      referencenumber: project.referencenumber,
-      expectedprofit: project.expectedprofit,
-      actualprofit: project.actualprofit,
-      projectmanager: project.projectmanager,
-      clientid: project.clientid,
-    },
-    process.env.JWT_SECRET!,
-    {
-      expiresIn: "30d",
-    }
-  );
+// const generateTokenReponse = (project: project) => {
+//   const token = jwt.sign(
+//     {
+//       idproject: project.idproject, //NAME OF CLIENT MUST BE UNIQUE TO MAKE THIS WORK ,put the corrospeonding name of client at the end
+//       projectname: project.projectname,
+//       description: project.description,
+//       projecttype: project.projecttype,
+//       projectstatus: project.projectstatus,
+//       projectstartdate: project.projectstartdate,
+//       durationOfproject: project.durationOfproject,
+//       plannedcompletiondate: project.plannedcompletiondate,
+//       currency: project.currency,
+//       contractvalue: project.contractvalue,
+//       contractstatus: project.contractstatus,
+//       referencenumber: project.referencenumber,
+//       expectedprofit: project.expectedprofit,
+//       actualprofit: project.actualprofit,
+//       projectmanager: project.projectmanager,
+//       clientid: project.clientid,
+//     },
+//     process.env.JWT_SECRET!,
+//     {
+//       expiresIn: "30d",
+//     }
+//   );
 
-  return {
-    idproject: project.idproject, //todo check if removeable this and webtoken here
-    projectname: project.projectname,
-    description: project.description,
-    projecttype: project.projecttype,
-    projectstatus: project.projectstatus,
-    projectstartdate: project.projectstartdate,
-    durationOfproject: project.durationOfproject,
-    plannedcompletiondate: project.plannedcompletiondate,
-    currency: project.currency,
-    contractvalue: project.contractvalue,
-    contractstatus: project.contractstatus,
-    referencenumber: project.referencenumber,
-    expectedprofit: project.expectedprofit,
-    actualprofit: project.actualprofit,
-    projectmanager: project.projectmanager,
-    clientid: project.clientid,
-    token: token,
-  };
-};
+//   return {
+//     idproject: project.idproject, //todo check if removeable this and webtoken here
+//     projectname: project.projectname,
+//     description: project.description,
+//     projecttype: project.projecttype,
+//     projectstatus: project.projectstatus,
+//     projectstartdate: project.projectstartdate,
+//     durationOfproject: project.durationOfproject,
+//     plannedcompletiondate: project.plannedcompletiondate,
+//     currency: project.currency,
+//     contractvalue: project.contractvalue,
+//     contractstatus: project.contractstatus,
+//     referencenumber: project.referencenumber,
+//     expectedprofit: project.expectedprofit,
+//     actualprofit: project.actualprofit,
+//     projectmanager: project.projectmanager,
+//     clientid: project.clientid,
+//     token: token,
+//   };
+// };
 
 export default router;
 
