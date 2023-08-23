@@ -44,6 +44,20 @@ model draft {
   @@index([creator], map: "creator_idx")
 }
 
+model updateapproval {
+  id            String         @id
+  information   Json
+  ucreator      String
+  administrator String
+  pucreator     user           @relation("updateapproval_pucreator", fields: [ucreator], references: [iduser], onUpdate: Restrict, map: "ucreator")
+  puadmin       user           @relation("updateapproval_puadmin", fields: [administrator], references: [iduser], onUpdate: Restrict, map: "administrator")
+  approval      approvalStatus
+  comment       String?
+
+  @@index([administrator], map: "puadmin_idx")
+  @@index([ucreator], map: "pucreator_idx")
+}
+
 model clientpm {
   clientpmid String    @id @default(uuid())
   email      String    @unique @db.VarChar(55)
@@ -130,15 +144,17 @@ model role {
 }
 
 model user {
-  iduser    String    @id @default(uuid())
-  email     String    @unique(map: "User_email_key") @db.VarChar(80)
-  password  String    @db.VarChar(80)
-  firstname String    @db.VarChar(45)
-  lastname  String    @db.VarChar(45)
+  iduser    String           @id @default(uuid())
+  email     String           @unique(map: "User_email_key") @db.VarChar(80)
+  password  String           @db.VarChar(80)
+  firstname String           @db.VarChar(45)
+  lastname  String           @db.VarChar(45)
   roleid    String
   project   project[]
-  role      role      @relation(fields: [roleid], references: [idrole], onUpdate: Restrict, map: "roleID")
+  role      role             @relation(fields: [roleid], references: [idrole], onUpdate: Restrict, map: "roleID")
   draft     draft[]
+  pudrafts  updateapproval[] @relation("updateapproval_pucreator")
+  udrafts   updateapproval[] @relation("updateapproval_puadmin")
 
   @@index([roleid], map: "roleID_idx")
 }
@@ -169,4 +185,10 @@ enum currency {
   USD
   EUR
   AUD
+}
+
+enum approvalStatus {
+  Not_Yet
+  Approved
+  Not_Approved
 }

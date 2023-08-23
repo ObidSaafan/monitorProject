@@ -17,7 +17,6 @@ app.listen(port, () => {
 });
 app.use(express.json());
 
-// TODO: do we need cors?
 app.use(
   cors({
     credentials: true,

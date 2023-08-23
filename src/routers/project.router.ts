@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Express } from "express";
 import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import { HTTP_BAD_REQUEST } from "../constants/http_status";
@@ -8,7 +8,7 @@ import {
   allowedContractStatuses,
   allowedCurrencies,
 } from "../constants/allowed_types";
-import { PrismaClient, project } from "@prisma/client";
+import { PrismaClient, approvalStatus, project } from "@prisma/client";
 
 const bodyParser = require("body-parser");
 
@@ -374,6 +374,55 @@ router.post(
   })
 );
 
+router.post(
+  "/update/projectType/:projectType/date/:date/clientName/:clientName",
+  async (req, res) => {
+    //try {
+    const { information } = req.body; // Use the received draftid
+    const userId = req.user?.id;
+    const { projectType, date, clientName } = req.params;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: User ID is missing." });
+    }
+    try {
+      const project = await prisma.project.findUnique({
+        where: { idproject: `${projectType}/${date}/${clientName}` },
+      });
+
+      if (!project) {
+        return res.status(404).send("Not Found");
+      }
+
+      // Convert the draft object to a JSON string
+      const draftJson = JSON.stringify(information);
+
+      // Update existing draft
+      const updatedDraft = await prisma.updateapproval.create({
+        data: {
+          id: project.idproject,
+          information: draftJson,
+          ucreator: userId,
+          administrator: project.projectmanager,
+          approval: "Not_Approved",
+        },
+      });
+      //TODO approval system still need to be implemented
+      res.json({ success: true, draft: updatedDraft });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "An error occurred while fetching data." });
+    }
+  }
+  //catch (error) {
+  //res.status(500).json({ error: 'Failed to save draft.' });
+  //}
+  //}
+);
+
+//TODO : remove generate token
 const generateTokenReponse = (project: project) => {
   const token = jwt.sign(
     {
