@@ -1,4 +1,4 @@
-import { Router, Express } from "express";
+import { Router } from "express";
 import asyncHandler from "express-async-handler";
 import { HTTP_BAD_REQUEST } from "../constants/http_status";
 import {
@@ -177,26 +177,6 @@ router.get(
   })
 );
 
-/*router.post('/createDraft', asyncHandler(
-    async (req, res) => {
-      const {draft} = req.body;
-      const newDraft: draft = await prisma.draft.create({
-        data:{
-        draft
-        },
-      },
-    )
-      res.send(newDraft);
-    }
-));
-
-router.get("/Drafts",asyncHandler(
-  async (req, res) => {
-    const drafts = await prisma.draft.findMany();
-      res.send(draftss);
-  }
-))
-*/
 router.use(bodyParser.json()); //todo check if removeable
 
 router.post("/validate25", (req, res) => {
@@ -263,8 +243,6 @@ router.post(
       clientName,
       paymentMilestones,
       budgetedcosts,
-      actualspend,
-      revenuerecognized,
       projectmanagerclient,
     } = req.body;
 
@@ -328,30 +306,6 @@ router.post(
       res.status(HTTP_BAD_REQUEST).send("Client pm does not exist.");
       return;
     }
-    /* const newProject: project = await prisma.project.create({
-        data:{
-        idproject: projectType + "/"+ projectStartDate +"/"+ clientName, 
-        //add sequence number after client name to cover the case where everything is the same 
-        projectname: projectName, 
-        description:Description,
-        projecttype:projectType, 
-        projectstatus:projectStatus, 
-        projectstartdate:projectStartDate, 
-        durationOfproject:durationOfProject,
-        plannedcompletiondate:plannedCompletionDate,
-        currency:Currency,
-        contractvalue:contractValue,
-        contractstatus:contractStatus,
-        referencenumber:referenceNumber,
-        expectedprofit:expectedProfit,
-        actualprofit:actualProfit,
-        projectmanager: projectmanager,
-        clientid : clientName // ask if clients can have same name if yes for now ill leave it like this but later on we want to make it take the name of the client and then find the matching name and put it here
-        },
-        //terms and budgeted cost ii think need to research
-      },
-    )
-    res.send(generateTokenReponse(newProject)); */
 
     try {
       const newProject = await prisma.project.create({
@@ -393,18 +347,6 @@ router.post(
         },
       });
 
-      /* const createdPaymentMilestones = await Promise.all(
-          paymentMilestones.map(async (milestone: { value: number; description: string }) => {
-            return await prisma.paymentmilestone.create({
-              data: {
-                milestonevalue: milestone.value,
-                milestonetext: milestone.description,
-                project: { connect: { idproject: newProject.idproject } },
-              },
-            });
-          })
-        );
-      */
       res.status(201).send(newProject);
     } catch (err) {
       console.error(err);
@@ -472,67 +414,7 @@ router.post(
       res.status(500).json({ error: "An error occurred" });
     }
   }
-
-  //catch (error) {
-  //res.status(500).json({ error: 'Failed to save draft.' });
-  //}
-  //}
 );
-//TODO remove this , i already merged it with the normal get for a single
-//TODO project so they can view any update request alongside the project details
-// router.get(
-//   "/view/update/projectType/:projectType/date/:date/clientName/:clientName",
-//   async (req, res) => {
-//     const userId = req.user?.id;
-//     const { projectType, date, clientName } = req.params;
-
-// //TODO : remove generate token
-// const generateTokenReponse = (project: project) => {
-//   const token = jwt.sign(
-//     {
-//       idproject: project.idproject, //NAME OF CLIENT MUST BE UNIQUE TO MAKE THIS WORK ,put the corrospeonding name of client at the end
-//       projectname: project.projectname,
-//       description: project.description,
-//       projecttype: project.projecttype,
-//       projectstatus: project.projectstatus,
-//       projectstartdate: project.projectstartdate,
-//       durationOfproject: project.durationOfproject,
-//       plannedcompletiondate: project.plannedcompletiondate,
-//       currency: project.currency,
-//       contractvalue: project.contractvalue,
-//       contractstatus: project.contractstatus,
-//       referencenumber: project.referencenumber,
-//       expectedprofit: project.expectedprofit,
-//       actualprofit: project.actualprofit,
-//       projectmanager: project.projectmanager,
-//       clientid: project.clientid,
-//     },
-//     process.env.JWT_SECRET!,
-//     {
-//       expiresIn: "30d",
-//     }
-//   );
-
-//   return {
-//     idproject: project.idproject, //todo check if removeable this and webtoken here
-//     projectname: project.projectname,
-//     description: project.description,
-//     projecttype: project.projecttype,
-//     projectstatus: project.projectstatus,
-//     projectstartdate: project.projectstartdate,
-//     durationOfproject: project.durationOfproject,
-//     plannedcompletiondate: project.plannedcompletiondate,
-//     currency: project.currency,
-//     contractvalue: project.contractvalue,
-//     contractstatus: project.contractstatus,
-//     referencenumber: project.referencenumber,
-//     expectedprofit: project.expectedprofit,
-//     actualprofit: project.actualprofit,
-//     projectmanager: project.projectmanager,
-//     clientid: project.clientid,
-//     token: token,
-//   };
-// };
 
 export default router;
 
