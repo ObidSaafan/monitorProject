@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import userRouter from "./routers/user.router";
+import testRouter from "./routers/test.router";
 import projectRouter from "./routers/project.router";
 import clientRouter from "./routers/client.router";
 import draftRouter from "./routers/draft.router";
@@ -29,3 +30,4 @@ app.use("/api/users", userRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/clients", clientRouter);
 app.use("/api/drafts", draftRouter);
+app.use("/test", testRouter);
