@@ -11,7 +11,7 @@ model actualspend {
   idas      String   @id @default(uuid())
   source    String   @db.VarChar(55)
   value     Float
-  date      DateTime @db.Date
+  date      DateTime
   idproject String   @db.VarChar(55)
   project   project  @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_actualspend_project")
 
@@ -74,8 +74,8 @@ model invoice {
   source             String    @db.VarChar(55)
   value              Float
   status             String    @db.VarChar(45)
-  date_of_submission DateTime  @db.Date
-  date_of_receiving  DateTime? @db.Date
+  date_of_submission DateTime
+  date_of_receiving  DateTime?
   idproject          String    @db.VarChar(55)
   project            project   @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_invoice_project")
 
@@ -99,11 +99,11 @@ model project {
   description           String?             @db.MediumText
   projecttype           type
   projectstatus         status
-  projectstartdate      DateTime            @db.Date
+  projectstartdate      DateTime            @default(now())
   projectmanager        String
   clientpmid            String
   durationOfproject     Int?
-  plannedcompletiondate DateTime?           @db.Date
+  plannedcompletiondate DateTime?
   currency              currency
   contractvalue         Float
   contractstatus        cstatus
@@ -128,7 +128,7 @@ model project {
 
 model revenuerecognized {
   idrr      String   @id @default(uuid())
-  date      DateTime @db.Date
+  date      DateTime
   value     Float
   idproject String   @db.VarChar(55)
   project   project  @relation(fields: [idproject], references: [idproject], onUpdate: Restrict, map: "fk_revenuerecognized_project")

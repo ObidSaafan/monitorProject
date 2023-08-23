@@ -18,7 +18,9 @@ const router = Router();
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const projects = await prisma.project.findMany();
+    const projects = await prisma.project.findMany({
+      include: { Sprojectmanager: true },
+    });
 
     const projectsWithCompletion = await Promise.all(
       projects.map(async (project) => {
@@ -32,10 +34,7 @@ router.get(
           ? (latestRevenue.value / contractValue) * 100
           : 0; // Default to 0 if no revenue recognized entry found
 
-        // Fetch the project manager's name from the user table
-        const projectManager = await prisma.user.findUnique({
-          where: { iduser: project.projectmanager },
-        });
+        const projectManager = project.Sprojectmanager;
 
         return {
           id: project.idproject,
@@ -83,13 +82,6 @@ router.get(
   }
 );
 
-//router.get("/",asyncHandler(
-//  async (req, res) => {
-//  const projects = await prisma.project.findMany();
-//  res.send(projects);
-//   }
-//))
-
 router.get("/information", async (req, res) => {
   try {
     const clients = await prisma.client.findMany({
@@ -110,6 +102,8 @@ router.get("/information", async (req, res) => {
         roleid: "2",
       },
     });
+
+    //?: do we need this?
     const dropdownOptions = {
       contractStatuses: allowedContractStatuses,
       projectStatuses: allowedProjectStatuses,
@@ -124,19 +118,50 @@ router.get("/information", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-/*router.get("/search/:searchTerm", asyncHandler(
-    async (req, res) => {
-        const result = await prisma.project.findMany({
-            where: {
-              contains: {}
-            },
-            select: {
-              projectname: true,
-            },
-          })
-           // res.send(result);
-        }
-  ))*/
+
+router.get(
+  "/search/:searchTerm",
+  asyncHandler(async (req, res) => {
+    const searchTerm = req.params.searchTerm;
+    const matchingProjects = await prisma.project.findMany({
+      where: {
+        projectname: {
+          contains: searchTerm,
+        },
+      },
+      include: { Sprojectmanager: true },
+    });
+    const projectsWithCompletion = await Promise.all(
+      matchingProjects.map(async (project) => {
+        const latestRevenue = await prisma.revenuerecognized.findFirst({
+          where: { idproject: project.idproject },
+          orderBy: { date: "desc" },
+        });
+
+        const contractValue = project.contractvalue;
+        const completion = latestRevenue
+          ? (latestRevenue.value / contractValue) * 100
+          : 0; // Default to 0 if no revenue recognized entry found
+
+        const projectManager = project.Sprojectmanager;
+
+        return {
+          id: project.idproject,
+          projectname: project.projectname,
+          projectstatus: project.projectstatus,
+          projectmanager: projectManager
+            ? projectManager.firstname + " " + projectManager.lastname
+            : null,
+          contract: contractValue,
+          currency: project.currency,
+          completion: completion,
+        };
+      })
+    );
+
+    res.json(projectsWithCompletion);
+  })
+);
 
 /*router.post('/createDraft', asyncHandler(
     async (req, res) => {
@@ -422,53 +447,53 @@ router.post(
   //}
 );
 
-//TODO : remove generate token
-const generateTokenReponse = (project: project) => {
-  const token = jwt.sign(
-    {
-      idproject: project.idproject, //NAME OF CLIENT MUST BE UNIQUE TO MAKE THIS WORK ,put the corrospeonding name of client at the end
-      projectname: project.projectname,
-      description: project.description,
-      projecttype: project.projecttype,
-      projectstatus: project.projectstatus,
-      projectstartdate: project.projectstartdate,
-      durationOfproject: project.durationOfproject,
-      plannedcompletiondate: project.plannedcompletiondate,
-      currency: project.currency,
-      contractvalue: project.contractvalue,
-      contractstatus: project.contractstatus,
-      referencenumber: project.referencenumber,
-      expectedprofit: project.expectedprofit,
-      actualprofit: project.actualprofit,
-      projectmanager: project.projectmanager,
-      clientid: project.clientid,
-    },
-    process.env.JWT_SECRET!,
-    {
-      expiresIn: "30d",
-    }
-  );
+// //TODO : remove generate token
+// const generateTokenReponse = (project: project) => {
+//   const token = jwt.sign(
+//     {
+//       idproject: project.idproject, //NAME OF CLIENT MUST BE UNIQUE TO MAKE THIS WORK ,put the corrospeonding name of client at the end
+//       projectname: project.projectname,
+//       description: project.description,
+//       projecttype: project.projecttype,
+//       projectstatus: project.projectstatus,
+//       projectstartdate: project.projectstartdate,
+//       durationOfproject: project.durationOfproject,
+//       plannedcompletiondate: project.plannedcompletiondate,
+//       currency: project.currency,
+//       contractvalue: project.contractvalue,
+//       contractstatus: project.contractstatus,
+//       referencenumber: project.referencenumber,
+//       expectedprofit: project.expectedprofit,
+//       actualprofit: project.actualprofit,
+//       projectmanager: project.projectmanager,
+//       clientid: project.clientid,
+//     },
+//     process.env.JWT_SECRET!,
+//     {
+//       expiresIn: "30d",
+//     }
+//   );
 
-  return {
-    idproject: project.idproject, //todo check if removeable this and webtoken here
-    projectname: project.projectname,
-    description: project.description,
-    projecttype: project.projecttype,
-    projectstatus: project.projectstatus,
-    projectstartdate: project.projectstartdate,
-    durationOfproject: project.durationOfproject,
-    plannedcompletiondate: project.plannedcompletiondate,
-    currency: project.currency,
-    contractvalue: project.contractvalue,
-    contractstatus: project.contractstatus,
-    referencenumber: project.referencenumber,
-    expectedprofit: project.expectedprofit,
-    actualprofit: project.actualprofit,
-    projectmanager: project.projectmanager,
-    clientid: project.clientid,
-    token: token,
-  };
-};
+//   return {
+//     idproject: project.idproject, //todo check if removeable this and webtoken here
+//     projectname: project.projectname,
+//     description: project.description,
+//     projecttype: project.projecttype,
+//     projectstatus: project.projectstatus,
+//     projectstartdate: project.projectstartdate,
+//     durationOfproject: project.durationOfproject,
+//     plannedcompletiondate: project.plannedcompletiondate,
+//     currency: project.currency,
+//     contractvalue: project.contractvalue,
+//     contractstatus: project.contractstatus,
+//     referencenumber: project.referencenumber,
+//     expectedprofit: project.expectedprofit,
+//     actualprofit: project.actualprofit,
+//     projectmanager: project.projectmanager,
+//     clientid: project.clientid,
+//     token: token,
+//   };
+// };
 
 export default router;
 
