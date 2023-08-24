@@ -15,7 +15,7 @@ const bodyParser = require("body-parser");
 const prisma = new PrismaClient();
 const router = Router();
 
-//router.use(authenticateToken);
+router.use(authenticateToken);
 
 router.get(
   "/",
