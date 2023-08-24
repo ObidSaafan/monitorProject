@@ -99,7 +99,7 @@ model project {
   description           String?             @db.MediumText
   projecttype           type
   projectstatus         status
-  projectstartdate      DateTime            @default(now())
+  projectstartdate      DateTime
   projectmanager        String
   clientpmid            String
   durationOfproject     Int?
