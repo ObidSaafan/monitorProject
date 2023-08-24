@@ -228,7 +228,7 @@ router.post("/create", async (req, res) => {
     Description,
     projectType,
     projectStatus,
-    projectStartDate,
+    //projectStartDate,
     durationOfProject,
     plannedCompletionDate,
     Currency,
@@ -330,12 +330,18 @@ router.post("/create", async (req, res) => {
       .send("Client pm is not associated with the provided client.");
     return;
   }
+  // add default Date
+  const projectStartDate = new Date();
 
   try {
     const newProject = await prisma.project.create({
       data: {
         idproject:
-          projectType + "/" + projectStartDate + "/" + client.clientname, // Use client.clientid
+          projectType +
+          "/" +
+          projectStartDate.toISOString() +
+          "/" +
+          client.clientname, // Use client.clientid
         projectname: projectName,
         description: Description,
         projecttype: projectType,
