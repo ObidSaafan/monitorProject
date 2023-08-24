@@ -55,7 +55,7 @@ router.get(
     res.json(projectsWithCompletion);
   })
 );
-
+//todo turn completion into middlware and use it here too
 router.get(
   "/projectType/:projectType/date/:date/clientName/:clientName",
   async (req, res) => {
@@ -222,138 +222,161 @@ router.post("/validate75", (req, res) => {
   res.json({ success: true });
 });
 
-router.post(
-  "/create",
-  asyncHandler(async (req, res) => {
-    const {
-      projectName,
-      Description,
-      projectType,
-      projectStatus,
-      projectStartDate,
-      durationOfProject,
-      plannedCompletionDate,
-      Currency,
-      contractValue,
-      contractStatus,
-      referenceNumber,
-      expectedProfit,
-      actualProfit,
-      projectmanager,
-      clientName,
-      paymentMilestones,
-      budgetedcosts,
-      projectmanagerclient,
-    } = req.body;
+router.post("/create", async (req, res) => {
+  const {
+    projectName,
+    Description,
+    projectType,
+    projectStatus,
+    projectStartDate,
+    durationOfProject,
+    plannedCompletionDate,
+    Currency,
+    contractValue,
+    contractStatus,
+    referenceNumber,
+    expectedProfit,
+    actualProfit,
+    projectmanager,
+    clientName,
+    paymentMilestones,
+    budgetedcosts,
+    projectmanagerclient,
+  } = req.body;
 
-    let project;
-    if (projectName) {
-      project = await prisma.project.findFirst({
-        where: {
-          projectname: projectName,
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized: User ID is missing." });
+  }
+
+  // Check if the user has the roleid of 1 (assuming 1 is the admin role)
+  if (userRole !== "1") {
+    return res
+      .status(403)
+      .json({ error: "Forbidden: User does not have permission." });
+  }
+
+  let project;
+  if (projectName) {
+    project = await prisma.project.findFirst({
+      where: {
+        projectname: projectName,
+      },
+    });
+  }
+
+  if (project) {
+    res.status(HTTP_BAD_REQUEST).send("Project already exists!");
+    return;
+  }
+
+  // paymentmilestoneValue,paymentmilestoneDesc
+
+  let client;
+  if (clientName) {
+    client = await prisma.client.findUnique({
+      where: {
+        clientname: clientName,
+      },
+    });
+  }
+
+  if (!client) {
+    // Handle the case where the client doesn't exist
+    res.status(HTTP_BAD_REQUEST).send("Client does not exist.");
+    return;
+  }
+
+  let pm;
+  if (projectmanager) {
+    pm = await prisma.user.findUnique({
+      where: {
+        email: projectmanager,
+      },
+    });
+  }
+
+  if (!pm) {
+    // Handle the case where the project manager doesn't exist
+    res.status(HTTP_BAD_REQUEST).send("Project manager does not exist.");
+    return;
+  }
+  if (pm.roleid !== "2") {
+    res
+      .status(HTTP_BAD_REQUEST)
+      .send("the email provided does not belong to a PM.");
+    return;
+  }
+
+  let cpm;
+  if (projectmanagerclient) {
+    cpm = await prisma.clientpm.findUnique({
+      where: {
+        email: projectmanagerclient,
+      },
+    });
+  }
+
+  if (!cpm) {
+    // Handle the case where the client pm doesn't exist
+    res.status(HTTP_BAD_REQUEST).send("Client pm does not exist.");
+    return;
+  }
+  if (cpm.clientid !== client.clientid) {
+    res
+      .status(HTTP_BAD_REQUEST)
+      .send("Client pm is not associated with the provided client.");
+    return;
+  }
+
+  try {
+    const newProject = await prisma.project.create({
+      data: {
+        idproject:
+          projectType + "/" + projectStartDate + "/" + client.clientname, // Use client.clientid
+        projectname: projectName,
+        description: Description,
+        projecttype: projectType,
+        projectstatus: projectStatus,
+        projectstartdate: projectStartDate,
+        durationOfproject: durationOfProject,
+        plannedcompletiondate: plannedCompletionDate,
+        currency: Currency,
+        contractvalue: contractValue,
+        contractstatus: contractStatus,
+        referencenumber: referenceNumber,
+        expectedprofit: expectedProfit,
+        actualprofit: actualProfit,
+        projectmanager: pm.iduser,
+        clientpmid: cpm.clientpmid,
+        clientid: client.clientid, // Use client.clientid
+        paymentmilestone: {
+          create: paymentMilestones.map(
+            (milestone: { text: string; value: number }) => ({
+              milestonetext: milestone.text,
+              milestonevalue: milestone.value,
+            })
+          ),
         },
-      });
-    }
-
-    if (project) {
-      res.status(HTTP_BAD_REQUEST).send("Project already exists!");
-      return;
-    }
-
-    // paymentmilestoneValue,paymentmilestoneDesc
-
-    let client;
-    if (clientName) {
-      client = await prisma.client.findUnique({
-        where: {
-          clientname: clientName,
+        budgetedcost: {
+          create: budgetedcosts.map(
+            (cost: { text: string; value: number }) => ({
+              source: cost.text,
+              value: cost.value,
+            })
+          ),
         },
-      });
-    }
+      },
+    });
 
-    if (!client) {
-      // Handle the case where the client doesn't exist
-      res.status(HTTP_BAD_REQUEST).send("Client does not exist.");
-      return;
-    }
-
-    let pm;
-    if (projectmanager) {
-      pm = await prisma.user.findFirst({
-        where: {
-          email: projectmanager,
-        },
-      });
-    }
-
-    if (!pm) {
-      // Handle the case where the project manager doesn't exist
-      res.status(HTTP_BAD_REQUEST).send("Project manager does not exist.");
-      return;
-    }
-
-    let cpm;
-    if (projectmanagerclient) {
-      cpm = await prisma.clientpm.findFirst({
-        where: {
-          email: projectmanagerclient,
-        },
-      });
-    }
-
-    if (!cpm) {
-      // Handle the case where the client pm doesn't exist
-      res.status(HTTP_BAD_REQUEST).send("Client pm does not exist.");
-      return;
-    }
-
-    try {
-      const newProject = await prisma.project.create({
-        data: {
-          idproject:
-            projectType + "/" + projectStartDate + "/" + client.clientname, // Use client.clientid
-          projectname: projectName,
-          description: Description,
-          projecttype: projectType,
-          projectstatus: projectStatus,
-          projectstartdate: projectStartDate,
-          durationOfproject: durationOfProject,
-          plannedcompletiondate: plannedCompletionDate,
-          currency: Currency,
-          contractvalue: contractValue,
-          contractstatus: contractStatus,
-          referencenumber: referenceNumber,
-          expectedprofit: expectedProfit,
-          actualprofit: actualProfit,
-          projectmanager: pm.iduser,
-          clientpmid: cpm.clientpmid,
-          clientid: client.clientid, // Use client.clientid
-          paymentmilestone: {
-            create: paymentMilestones.map(
-              (milestone: { text: string; value: number }) => ({
-                milestonetext: milestone.text,
-                milestonevalue: milestone.value,
-              })
-            ),
-          },
-          budgetedcost: {
-            create: budgetedcosts.map(
-              (cost: { text: string; value: number }) => ({
-                source: cost.text,
-                value: cost.value,
-              })
-            ),
-          },
-        },
-      });
-
-      res.status(201).send(newProject);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  })
-);
+    res.status(201).send(newProject);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 router.post(
   "/update/projectType/:projectType/date/:date/clientName/:clientName",
