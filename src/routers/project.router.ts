@@ -74,21 +74,31 @@ router.get(
       });
 
       if (!project) {
-        return res.status(404).send("Not Found");
+        return res.status(404).send("project doesnt exist");
       }
-      const updaterequest = await prisma.updateapproval.findUnique({
-        where: { id: project.idproject },
-      });
-      if (
-        !userId ||
-        (userId !== updaterequest?.administrator &&
-          userId !== updaterequest?.ucreator)
-      ) {
+      if (!userId || project.projectmanager !== userId) {
         return res.status(401).json({
           error: "Unauthorized: User ID is missing or not authorized.",
         });
       }
-      res.json({ success: true, project, updaterequest });
+      const updaterequest = await prisma.updateapproval.findUnique({
+        where: { id: project.idproject },
+      });
+      if (!updaterequest) {
+        res.json({ success: true, project }); // Send response without updaterequest
+      } else {
+        if (
+          //todo need testing on the update request and the full process of the get project, i did small testing n i think it works
+          //todo add project completion perecentage here , make it a middleware and use it here and the get ontop for better practice
+          userId !== updaterequest.administrator &&
+          userId !== updaterequest.ucreator
+        ) {
+          return res.status(401).json({
+            error: "Unauthorized: User ID is missing or not authorized.",
+          });
+        }
+        res.json({ success: true, project, updaterequest });
+      }
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "An error occurred while fetching data." });

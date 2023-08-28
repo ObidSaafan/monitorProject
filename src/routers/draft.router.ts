@@ -12,13 +12,24 @@ router.use(authenticateToken);
 router.get("/viewall", async (req, res) => {
   try {
     const userId = req.user?.id; // Get the user's ID from the authenticated user
+    const userRole = req.user?.role; // Get the user's role from the authenticated user
 
     if (!userId) {
       return res
         .status(401)
         .json({ error: "Unauthorized: User ID is missing." });
     }
+    // ! for now i will comment this part and make it only allow fm (role 1 ) to view drafts otherwise u cant
 
+    if (userRole !== "1") {
+      // User has roleid 1 (FM), so they can view all drafts
+      // const drafts = await prisma.draft.findMany();
+      // return res.json(drafts);
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: User ID is missing." });
+    }
+    //!otherwise they are pm and can only view drafts of which they are the creator of ,, keep in mind tho i think pm shouldnt even create a draft im not sure we need to ask
     const drafts = await prisma.draft.findMany({
       where: {
         creator: userId, // Filter drafts where the creator is the logged-in user
