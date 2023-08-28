@@ -1,0 +1,11 @@
+{
+"Role1":
+{
+    "user":{
+        "login":true,
+        "register":true
+    }
+
+
+}
+}

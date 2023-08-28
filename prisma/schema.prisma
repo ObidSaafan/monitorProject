@@ -139,7 +139,7 @@ model revenuerecognized {
 model role {
   idrole      String @id @default(uuid())
   rolename    String @db.VarChar(45)
-  permissions String @db.MediumText
+  permissions Json
   user        user[]
 }
 
