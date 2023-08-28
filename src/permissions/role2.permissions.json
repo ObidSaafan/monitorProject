@@ -1,5 +1,5 @@
 {
-"Role1":
+"Role2":
 {
 
     "project":{
@@ -7,14 +7,14 @@
         "searchprojects":true,
         "fullviewproject":true,
         "updateproject":true,
-        "createproject":true
+        "createproject":false
     },
     "draft":{
-        "viewalldrafts":true,
-        "savedraft":true
+        "viewalldrafts":false,
+        "savedraft":false
     },
     "client":{
-        "addclient":true
+        "addclient":false
     }
 
 }
