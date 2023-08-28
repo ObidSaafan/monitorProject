@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { Secret, VerifyErrors } from "jsonwebtoken";
+import { user } from "@prisma/client";
 
 interface DecodedToken {
   id: string;
@@ -47,4 +48,30 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
   });
 }
 
+function generateTokenResponse(user: user) {
+  const token = jwt.sign(
+    {
+      id: user.iduser,
+      email: user.email,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      role: user.roleid,
+    },
+    process.env.JWT_SECRET!,
+    {
+      expiresIn: "30d", // TODO: Consider a shorter expiration time
+    }
+  );
+
+  return {
+    id: user.iduser,
+    email: user.email,
+    firstname: user.firstname,
+    lastname: user.lastname,
+    role: user.roleid,
+    token: token,
+  };
+}
+
+export { generateTokenResponse };
 export default authenticateToken;
