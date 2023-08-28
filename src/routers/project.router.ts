@@ -16,97 +16,89 @@ const prisma = new PrismaClient();
 const router = Router();
 
 router.use(authenticateToken);
+async function getAllProjects(req: any, res: any) {
+  const projects = await prisma.project.findMany({
+    include: { Sprojectmanager: true },
+  });
 
-router.get(
-  "/",
-  asyncHandler(async (req, res) => {
-    const projects = await prisma.project.findMany({
-      include: { Sprojectmanager: true },
-    });
-
-    const projectsWithCompletion = await Promise.all(
-      projects.map(async (project) => {
-        const latestRevenue = await prisma.revenuerecognized.findFirst({
-          where: { idproject: project.idproject },
-          orderBy: { date: "desc" },
-        });
-
-        const contractValue = project.contractvalue;
-        const completion = latestRevenue
-          ? (latestRevenue.value / contractValue) * 100
-          : 0; // Default to 0 if no revenue recognized entry found
-
-        const projectManager = project.Sprojectmanager;
-
-        return {
-          id: project.idproject,
-          projectname: project.projectname,
-          projectstatus: project.projectstatus,
-          projectmanager: projectManager
-            ? projectManager.firstname + " " + projectManager.lastname
-            : null,
-          contract: contractValue,
-          currency: project.currency,
-          completion: completion,
-        };
-      })
-    );
-
-    res.json(projectsWithCompletion);
-  })
-);
-//todo turn completion into middlware and use it here too
-router.get(
-  "/projectType/:projectType/date/:date/clientName/:clientName",
-  async (req, res) => {
-    const { projectType, date, clientName } = req.params;
-    const userId = req.user?.id;
-
-    try {
-      const project = await prisma.project.findUnique({
-        where: { idproject: `${projectType}/${date}/${clientName}` },
-        include: {
-          paymentmilestone: true, // Include related data from paymentmilestone table
-          revenuerecognized: true, // Include related data from revenuerecognized table
-          budgetedcost: true, // Include related data from budgetedcost table
-          actualspend: true, // Include related data from actualspend table
-        },
+  const projectsWithCompletion = await Promise.all(
+    projects.map(async (project) => {
+      const latestRevenue = await prisma.revenuerecognized.findFirst({
+        where: { idproject: project.idproject },
+        orderBy: { date: "desc" },
       });
 
-      if (!project) {
-        return res.status(404).send("project doesnt exist");
-      }
-      if (!userId || project.projectmanager !== userId) {
+      const contractValue = project.contractvalue;
+      const completion = latestRevenue
+        ? (latestRevenue.value / contractValue) * 100
+        : 0; // Default to 0 if no revenue recognized entry found
+
+      const projectManager = project.Sprojectmanager;
+
+      return {
+        id: project.idproject,
+        projectname: project.projectname,
+        projectstatus: project.projectstatus,
+        projectmanager: projectManager
+          ? projectManager.firstname + " " + projectManager.lastname
+          : null,
+        contract: contractValue,
+        currency: project.currency,
+        completion: completion,
+      };
+    })
+  );
+
+  res.json(projectsWithCompletion);
+}
+
+async function getProject(req: any, res: any) {
+  const { projectType, date, clientName } = req.params;
+  const userId = req.user?.id;
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { idproject: `${projectType}/${date}/${clientName}` },
+      include: {
+        paymentmilestone: true, // Include related data from paymentmilestone table
+        revenuerecognized: true, // Include related data from revenuerecognized table
+        budgetedcost: true, // Include related data from budgetedcost table
+        actualspend: true, // Include related data from actualspend table
+      },
+    });
+
+    if (!project) {
+      return res.status(404).send("project doesnt exist");
+    }
+    if (!userId || project.projectmanager !== userId) {
+      return res.status(401).json({
+        error: "Unauthorized: User ID is missing or not authorized.",
+      });
+    }
+    const updaterequest = await prisma.updateapproval.findUnique({
+      where: { id: project.idproject },
+    });
+    if (!updaterequest) {
+      res.json({ success: true, project }); // Send response without updaterequest
+    } else {
+      if (
+        //todo need testing on the update request and the full process of the get project, i did small testing n i think it works
+        //todo add project completion perecentage here , make it a middleware and use it here and the get ontop for better practice
+        userId !== updaterequest.administrator &&
+        userId !== updaterequest.ucreator
+      ) {
         return res.status(401).json({
           error: "Unauthorized: User ID is missing or not authorized.",
         });
       }
-      const updaterequest = await prisma.updateapproval.findUnique({
-        where: { id: project.idproject },
-      });
-      if (!updaterequest) {
-        res.json({ success: true, project }); // Send response without updaterequest
-      } else {
-        if (
-          //todo need testing on the update request and the full process of the get project, i did small testing n i think it works
-          //todo add project completion perecentage here , make it a middleware and use it here and the get ontop for better practice
-          userId !== updaterequest.administrator &&
-          userId !== updaterequest.ucreator
-        ) {
-          return res.status(401).json({
-            error: "Unauthorized: User ID is missing or not authorized.",
-          });
-        }
-        res.json({ success: true, project, updaterequest });
-      }
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "An error occurred while fetching data." });
+      res.json({ success: true, project, updaterequest });
     }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "An error occurred while fetching data." });
   }
-);
-
-router.get("/information", async (req, res) => {
+}
+async function getInformation(req: any, res: any) {
   try {
     const clients = await prisma.client.findMany({
       include: {
@@ -141,55 +133,49 @@ router.get("/information", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
-});
-
-router.get(
-  "/search/:searchTerm",
-  asyncHandler(async (req, res) => {
-    const searchTerm = req.params.searchTerm;
-    const matchingProjects = await prisma.project.findMany({
-      where: {
-        projectname: {
-          contains: searchTerm,
-        },
+}
+async function searchProject(req: any, res: any) {
+  const searchTerm = req.params.searchTerm;
+  const matchingProjects = await prisma.project.findMany({
+    where: {
+      projectname: {
+        contains: searchTerm,
       },
-      include: { Sprojectmanager: true },
-    });
-    const projectsWithCompletion = await Promise.all(
-      matchingProjects.map(async (project) => {
-        const latestRevenue = await prisma.revenuerecognized.findFirst({
-          where: { idproject: project.idproject },
-          orderBy: { date: "desc" },
-        });
+    },
+    include: { Sprojectmanager: true },
+  });
+  const projectsWithCompletion = await Promise.all(
+    matchingProjects.map(async (project) => {
+      const latestRevenue = await prisma.revenuerecognized.findFirst({
+        where: { idproject: project.idproject },
+        orderBy: { date: "desc" },
+      });
 
-        const contractValue = project.contractvalue;
-        const completion = latestRevenue
-          ? (latestRevenue.value / contractValue) * 100
-          : 0; // Default to 0 if no revenue recognized entry found
+      const contractValue = project.contractvalue;
+      const completion = latestRevenue
+        ? (latestRevenue.value / contractValue) * 100
+        : 0; // Default to 0 if no revenue recognized entry found
 
-        const projectManager = project.Sprojectmanager;
+      const projectManager = project.Sprojectmanager;
 
-        return {
-          id: project.idproject,
-          projectname: project.projectname,
-          projectstatus: project.projectstatus,
-          projectmanager: projectManager
-            ? projectManager.firstname + " " + projectManager.lastname
-            : null,
-          contract: contractValue,
-          currency: project.currency,
-          completion: completion,
-        };
-      })
-    );
+      return {
+        id: project.idproject,
+        projectname: project.projectname,
+        projectstatus: project.projectstatus,
+        projectmanager: projectManager
+          ? projectManager.firstname + " " + projectManager.lastname
+          : null,
+        contract: contractValue,
+        currency: project.currency,
+        completion: completion,
+      };
+    })
+  );
 
-    res.json(projectsWithCompletion);
-  })
-);
+  res.json(projectsWithCompletion);
+}
 
-router.use(bodyParser.json()); //todo check if removeable
-
-router.post("/validate25", (req, res) => {
+function validate25(req: any, res: any) {
   const { contractStatus } = req.body;
 
   if (!allowedContractStatuses.includes(contractStatus)) {
@@ -197,9 +183,8 @@ router.post("/validate25", (req, res) => {
   }
 
   res.json({ success: true });
-});
-
-router.post("/validate50", (req, res) => {
+}
+function validate50(req: any, res: any) {
   const { projectStatus, projectType } = req.body;
 
   if (!allowedProjectStatuses.includes(projectStatus)) {
@@ -210,9 +195,9 @@ router.post("/validate50", (req, res) => {
   }
 
   res.json({ success: true });
-});
+}
 
-router.post("/validate75", (req, res) => {
+function validate75(req: any, res: any) {
   const { Currency, paymentMilestones } = req.body;
 
   if (!allowedCurrencies.includes(Currency)) {
@@ -230,9 +215,9 @@ router.post("/validate75", (req, res) => {
   }
 
   res.json({ success: true });
-});
+}
 
-router.post("/create", async (req, res) => {
+async function createProject(req: any, res: any) {
   const {
     projectName,
     Description,
@@ -392,69 +377,82 @@ router.post("/create", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
-});
+}
+async function updateProject(req: any, res: any) {
+  //try {
+  const { information } = req.body; // Use the received draftid
+  const userId = req.user?.id;
+  const { projectType, date, clientName } = req.params;
 
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized: User ID is missing." });
+  }
+  try {
+    const project = await prisma.project.findUnique({
+      where: { idproject: `${projectType}/${date}/${clientName}` },
+    });
+
+    if (!project) {
+      return res.status(404).send("Not Found");
+    }
+
+    const {
+      revenuerecognized,
+      actualProfit,
+      actualspend,
+      invoice,
+      budgetedcost,
+      // ... add other properties as needed
+    } = information;
+    const draftJson = {
+      revenuerecognized,
+      actualProfit,
+      actualspend,
+      invoice,
+      budgetedcost,
+      // ... add other properties as needed
+    };
+    // Convert the draft object to a JSON string
+    const draftJsonString = JSON.stringify(draftJson); //? do we need to stringify the json?
+
+    // Update existing draft
+    const updatedDraft = await prisma.updateapproval.create({
+      data: {
+        id: project.idproject,
+        information: draftJsonString,
+        ucreator: userId,
+        administrator: project.projectmanager,
+        approval: "Not_Approved",
+      },
+    });
+
+    //TODO approval system still need to be implemented as in sending admin notification and they can approve or not and add comment and the approval removal fix thingy
+    res.json({ success: true, draft: updatedDraft });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "An error occurred" });
+  }
+}
+
+router.get("/", asyncHandler(getAllProjects));
+//todo turn completion into middlware and use it here too
+router.get(
+  "/projectType/:projectType/date/:date/clientName/:clientName",
+  getProject
+);
+router.get("/information", getInformation);
+router.get("/search/:searchTerm", asyncHandler(searchProject));
+
+router.use(bodyParser.json()); //todo check if removeable
+
+router.post("/validate25", validate25);
+router.post("/validate50", validate50);
+router.post("/validate75", validate75);
+router.post("/create", createProject);
 router.post(
   "/update/projectType/:projectType/date/:date/clientName/:clientName",
-  async (req, res) => {
-    //try {
-    const { information } = req.body; // Use the received draftid
-    const userId = req.user?.id;
-    const { projectType, date, clientName } = req.params;
-
-    if (!userId) {
-      return res
-        .status(401)
-        .json({ error: "Unauthorized: User ID is missing." });
-    }
-    try {
-      const project = await prisma.project.findUnique({
-        where: { idproject: `${projectType}/${date}/${clientName}` },
-      });
-
-      if (!project) {
-        return res.status(404).send("Not Found");
-      }
-
-      const {
-        revenuerecognized,
-        actualProfit,
-        actualspend,
-        invoice,
-        budgetedcost,
-        // ... add other properties as needed
-      } = information;
-      const draftJson = {
-        revenuerecognized,
-        actualProfit,
-        actualspend,
-        invoice,
-        budgetedcost,
-        // ... add other properties as needed
-      };
-      // Convert the draft object to a JSON string
-      const draftJsonString = JSON.stringify(draftJson);
-
-      // Update existing draft
-      const updatedDraft = await prisma.updateapproval.create({
-        data: {
-          id: project.idproject,
-          information: draftJsonString,
-          ucreator: userId,
-          administrator: project.projectmanager,
-          approval: "Not_Approved",
-        },
-      });
-
-      //TODO approval system still need to be implemented as in sending admin notification and they can approve or not and add comment and the approval removal fix thingy
-      res.json({ success: true, draft: updatedDraft });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "An error occurred" });
-    }
-  }
+  updateProject
 );
-
 export default router;
 
 /*
