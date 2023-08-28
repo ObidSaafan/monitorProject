@@ -49,10 +49,10 @@ model updateapproval {
   information   Json
   ucreator      String
   administrator String
-  pucreator     user           @relation("updateapproval_pucreator", fields: [ucreator], references: [iduser], onUpdate: Restrict, map: "ucreator")
-  puadmin       user           @relation("updateapproval_puadmin", fields: [administrator], references: [iduser], onUpdate: Restrict, map: "administrator")
   approval      approvalStatus
   comment       String?
+  puadmin       user           @relation("updateapproval_puadmin", fields: [administrator], references: [iduser], onUpdate: Restrict, map: "administrator")
+  pucreator     user           @relation("updateapproval_pucreator", fields: [ucreator], references: [iduser], onUpdate: Restrict, map: "ucreator")
 
   @@index([administrator], map: "puadmin_idx")
   @@index([ucreator], map: "pucreator_idx")
@@ -116,9 +116,9 @@ model project {
   budgetedcost          budgetedcost[]
   invoice               invoice[]
   paymentmilestone      paymentmilestone[]
+  pmclient              clientpm            @relation(fields: [clientpmid], references: [clientpmid], onUpdate: Restrict, map: "CprojectManager_idx")
   client                client              @relation(fields: [clientid], references: [clientid], onUpdate: Restrict, map: "fk_project_client")
   Sprojectmanager       user                @relation(fields: [projectmanager], references: [iduser], onUpdate: Restrict, map: "projectManager")
-  pmclient              clientpm            @relation(fields: [clientpmid], references: [clientpmid], onDelete: Restrict, onUpdate: Restrict, map: "CprojectManager_idx")
   revenuerecognized     revenuerecognized[]
 
   @@index([clientid], map: "fk_project_client")
@@ -150,11 +150,11 @@ model user {
   firstname String           @db.VarChar(45)
   lastname  String           @db.VarChar(45)
   roleid    String
-  project   project[]
-  role      role             @relation(fields: [roleid], references: [idrole], onUpdate: Restrict, map: "roleID")
   draft     draft[]
-  pudrafts  updateapproval[] @relation("updateapproval_pucreator")
+  project   project[]
   udrafts   updateapproval[] @relation("updateapproval_puadmin")
+  pudrafts  updateapproval[] @relation("updateapproval_pucreator")
+  role      role             @relation(fields: [roleid], references: [idrole], onUpdate: Restrict, map: "roleID")
 
   @@index([roleid], map: "roleID_idx")
 }
