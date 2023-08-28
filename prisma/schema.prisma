@@ -144,17 +144,18 @@ model role {
 }
 
 model user {
-  iduser    String           @id @default(uuid())
-  email     String           @unique(map: "User_email_key") @db.VarChar(80)
-  password  String           @db.VarChar(80)
-  firstname String           @db.VarChar(45)
-  lastname  String           @db.VarChar(45)
-  roleid    String
-  draft     draft[]
-  project   project[]
-  udrafts   updateapproval[] @relation("updateapproval_puadmin")
-  pudrafts  updateapproval[] @relation("updateapproval_pucreator")
-  role      role             @relation(fields: [roleid], references: [idrole], onUpdate: Restrict, map: "roleID")
+  iduser     String           @id @default(uuid())
+  email      String           @unique(map: "User_email_key") @db.VarChar(80)
+  password   String           @db.VarChar(80)
+  firstname  String           @db.VarChar(45)
+  lastname   String           @db.VarChar(45)
+  firstlogin Boolean          @default(true)
+  roleid     String
+  draft      draft[]
+  project    project[]
+  udrafts    updateapproval[] @relation("updateapproval_puadmin")
+  pudrafts   updateapproval[] @relation("updateapproval_pucreator")
+  role       role             @relation(fields: [roleid], references: [idrole], onUpdate: Restrict, map: "roleID")
 
   @@index([roleid], map: "roleID_idx")
 }
