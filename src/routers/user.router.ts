@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import asyncHandler from "express-async-handler";
 import { HTTP_BAD_REQUEST } from "../constants/http_status";
 import { PrismaClient, user } from "@prisma/client";
@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 const router = Router();
 
-async function login(req: any, res: any) {
+async function login(req: express.Request, res: express.Response) {
   const { Email, Password } = req.body;
   const user = await prisma.user.findUnique({
     where: {
@@ -24,12 +24,12 @@ async function login(req: any, res: any) {
   }
 }
 
-async function updateinformation(req: any, res: any) {
+async function updateinformation(req: express.Request, res: express.Response) {
   const { firstname, lastname, Password } = req.body;
   const userId = req.user?.id; // Get the user's ID from the authenticated user
 
   if (!userId) {
-    return res.status(401).json({ error: "Unauthorized: User ID is missing." });
+    res.status(401).json({ error: "Unauthorized: User ID is missing." });
   }
   //TODO: not sure if i need to remove this, its a search, but isnt it already gonna search again to update the record so what is the point here?
   //! need to test
