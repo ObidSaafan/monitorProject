@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import asyncHandler from "express-async-handler";
 import { HTTP_BAD_REQUEST } from "../constants/http_status";
 import {
@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 const router = Router();
 
 router.use(authenticateToken);
-async function getAllProjects(req: any, res: any) {
+async function getAllProjects(req: express.Request, res: express.Response) {
   const projects = await prisma.project.findMany({
     include: { Sprojectmanager: true },
   });
@@ -52,7 +52,7 @@ async function getAllProjects(req: any, res: any) {
   res.json(projectsWithCompletion);
 }
 
-async function getProject(req: any, res: any) {
+async function getProject(req: express.Request, res: express.Response) {
   const { projectType, date, clientName } = req.params;
   const userId = req.user?.id;
 
@@ -98,7 +98,7 @@ async function getProject(req: any, res: any) {
     res.status(500).json({ error: "An error occurred while fetching data." });
   }
 }
-async function getInformation(req: any, res: any) {
+async function getInformation(req: express.Request, res: express.Response) {
   try {
     const clients = await prisma.client.findMany({
       include: {
@@ -134,7 +134,7 @@ async function getInformation(req: any, res: any) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
-async function searchProject(req: any, res: any) {
+async function searchProject(req: express.Request, res: express.Response) {
   const searchTerm = req.params.searchTerm;
   const matchingProjects = await prisma.project.findMany({
     where: {
@@ -175,7 +175,7 @@ async function searchProject(req: any, res: any) {
   res.json(projectsWithCompletion);
 }
 
-function validate25(req: any, res: any) {
+function validate25(req: express.Request, res: express.Response) {
   const { contractStatus } = req.body;
 
   if (!allowedContractStatuses.includes(contractStatus)) {
@@ -184,7 +184,7 @@ function validate25(req: any, res: any) {
 
   res.json({ success: true });
 }
-function validate50(req: any, res: any) {
+function validate50(req: express.Request, res: express.Response) {
   const { projectStatus, projectType } = req.body;
 
   if (!allowedProjectStatuses.includes(projectStatus)) {
@@ -197,7 +197,7 @@ function validate50(req: any, res: any) {
   res.json({ success: true });
 }
 
-function validate75(req: any, res: any) {
+function validate75(req: express.Request, res: express.Response) {
   const { Currency, paymentMilestones } = req.body;
 
   if (!allowedCurrencies.includes(Currency)) {
@@ -217,7 +217,7 @@ function validate75(req: any, res: any) {
   res.json({ success: true });
 }
 
-async function createProject(req: any, res: any) {
+async function createProject(req: express.Request, res: express.Response) {
   const {
     projectName,
     Description,
@@ -378,7 +378,7 @@ async function createProject(req: any, res: any) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
-async function updateProject(req: any, res: any) {
+async function updateProject(req: express.Request, res: express.Response) {
   //try {
   const { information } = req.body; // Use the received draftid
   const userId = req.user?.id;
