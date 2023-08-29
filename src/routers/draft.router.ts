@@ -57,7 +57,7 @@ router.post(
         .json({ error: "Unauthorized: User ID is missing." });
     }
     // Convert the draft object to a JSON string
-    const draftJson = JSON.stringify(draft);
+    //const draftJson = JSON.stringify(draft);
     if (draftid) {
       const existingDraft = await prisma.draft.findUnique({
         where: { draftid: draftid },
@@ -79,7 +79,7 @@ router.post(
       const updatedDraft = await prisma.draft.update({
         where: { draftid: draftid },
         data: {
-          draft: draftJson,
+          draft: draft,
         },
       });
 
@@ -88,7 +88,7 @@ router.post(
       // Create new draft
       const draftInput = {
         draftid: uuidv4(),
-        draft: draftJson,
+        draft: draft,
         creator: userId, // Use the user's ID here
       };
 
