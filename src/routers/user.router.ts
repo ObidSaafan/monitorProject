@@ -32,6 +32,7 @@ async function updateinformation(req: any, res: any) {
     return res.status(401).json({ error: "Unauthorized: User ID is missing." });
   }
   //TODO: not sure if i need to remove this, its a search, but isnt it already gonna search again to update the record so what is the point here?
+  //! need to test
   // const user = await prisma.user.findUnique({
   //   where: {
   //     iduser: userId,
@@ -52,7 +53,7 @@ async function updateinformation(req: any, res: any) {
   res.send(generateTokenResponse(newUser));
 }
 //TODO: maybe create a forgot password?
-//todo: password problem, we need to make the password secure on first login
+
 async function addUser(req: any, res: any) {
   const { Email, roleid, Password } = req.body;
   const user = await prisma.user.findUnique({
@@ -76,7 +77,7 @@ async function addUser(req: any, res: any) {
       roleid: roleid,
     },
   });
-  res.send(generateTokenResponse(newUser));
+  res.send.send("User Created");
 }
 
 router.post("/login", asyncHandler(login));

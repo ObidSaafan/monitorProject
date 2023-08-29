@@ -413,13 +413,13 @@ async function updateProject(req: any, res: any) {
       // ... add other properties as needed
     };
     // Convert the draft object to a JSON string
-    const draftJsonString = JSON.stringify(draftJson); //? do we need to stringify the json?
+    // const draftJsonString = JSON.stringify(draftJson); //? do we need to stringify the json?
 
     // Update existing draft
     const updatedDraft = await prisma.updateapproval.create({
       data: {
         id: project.idproject,
-        information: draftJsonString,
+        information: draftJson,
         ucreator: userId,
         administrator: project.projectmanager,
         approval: "Not_Approved",
