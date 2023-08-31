@@ -21,7 +21,11 @@ async function login(req: express.Request, res: express.Response) {
   });
   //look using mysql in db for username and password maybe need orm or keep rawdata
   if (user && (await bcrypt.compare(Password, user.password))) {
-    res.send(generateTokenResponse(user));
+    res.send({
+      firstLogin: user.firstlogin,
+      token: generateTokenResponse(user),
+    });
+    res.send();
   } else {
     res.status(HTTP_BAD_REQUEST).send("Email or Password is invalid");
   }
@@ -84,12 +88,13 @@ async function addUser(req: express.Request, res: express.Response) {
       firstlogin: true,
     },
   });
-
   res.send("User Created");
 }
 
 router.post("/login", asyncHandler(login));
+
 router.use(authenticateToken);
 router.post("/update", asyncHandler(updateinformation));
 router.post("/addUser", asyncHandler(addUser));
+
 export default router;

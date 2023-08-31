@@ -15,7 +15,6 @@ const bodyParser = require("body-parser");
 const prisma = new PrismaClient();
 const router = Router();
 
-router.use(authenticateToken);
 async function getAllProjects(req: express.Request, res: express.Response) {
   const projects = await prisma.project.findMany({
     include: { Sprojectmanager: true },
@@ -434,6 +433,8 @@ async function updateProject(req: express.Request, res: express.Response) {
   }
 }
 
+router.use(authenticateToken);
+
 router.get("/", asyncHandler(getAllProjects));
 //todo turn completion into middlware and use it here too
 router.get(
@@ -448,6 +449,7 @@ router.use(bodyParser.json()); //todo check if removeable
 router.post("/validate25", validate25);
 router.post("/validate50", validate50);
 router.post("/validate75", validate75);
+
 router.post("/create", createProject);
 router.post(
   "/update/projectType/:projectType/date/:date/clientName/:clientName",
