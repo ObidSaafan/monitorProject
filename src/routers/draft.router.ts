@@ -38,7 +38,11 @@ async function viewAll(req: express.Request, res: express.Response) {
 async function saveDraft(req: express.Request, res: express.Response) {
   const { draftid, draft } = req.body; // Use the received draftid
   const userId = req.user?.id;
+  const roleId = req.user?.role;
 
+  if (roleId != "1") {
+    res.status(401).send("Only FMs can modify drafts");
+  }
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized: User ID is missing." });
   }
@@ -88,7 +92,7 @@ async function saveDraft(req: express.Request, res: express.Response) {
 
 router.use(express.json());
 router.use(authenticateToken);
-
+//TODO save draft as project
 router.get("/viewall", viewAll);
 router.post("/save-draft", saveDraft);
 

@@ -414,6 +414,7 @@ async function updateProject(req: express.Request, res: express.Response) {
     // Convert the draft object to a JSON string
     // const draftJsonString = JSON.stringify(draftJson); //? do we need to stringify the json?
 
+    //TODO: FM can update directly without approval
     // Update existing draft
     const updatedDraft = await prisma.updateapproval.create({
       data: {
