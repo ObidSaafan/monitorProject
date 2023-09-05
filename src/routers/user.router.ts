@@ -3,16 +3,13 @@ import asyncHandler from "express-async-handler";
 import { HTTP_BAD_REQUEST } from "../constants/http_status";
 import { PrismaClient, user } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import authenticateToken, {
-  generateTokenResponse,
-} from "../middleware/authentication";
+import { generateTokenResponse } from "../middleware/authentication";
 
 const prisma = new PrismaClient();
 
 const router = Router();
 
 async function login(req: express.Request, res: express.Response) {
-  //TODO: make first login redirect to update information
   const { Email, Password } = req.body;
   const user = await prisma.user.findUnique({
     where: {
@@ -34,34 +31,31 @@ async function updateinformation(req: express.Request, res: express.Response) {
   if (!userId) {
     res.status(401).json({ error: "Unauthorized: User ID is missing." });
   }
+  //TODO: not sure if i need to remove this, its a search, but isnt it already gonna search again to update the record so what is the point here?
+  //! need to test
+  // const user = await prisma.user.findUnique({
+  //   where: {
+  //     iduser: userId,
+  //   },
+  // });
 
   const encryptedPassword = await bcrypt.hash(Password, 10);
 
-  try {
-    const newUser: user = await prisma.user.update({
-      where: { iduser: userId },
-      data: {
-        firstname: firstname,
-        lastname: lastname,
-        password: encryptedPassword,
-        firstlogin: false,
-      },
-    });
-    res.send(generateTokenResponse(newUser));
-  } catch {
-    res.sendStatus(500);
-  }
+  const newUser: user = await prisma.user.update({
+    where: { iduser: userId },
+    data: {
+      firstname: firstname,
+      lastname: lastname,
+      password: encryptedPassword,
+      firstlogin: false,
+    },
+  });
+  res.send(generateTokenResponse(newUser));
 }
 //TODO: maybe create a forgot password?
 
-async function addUser(req: express.Request, res: express.Response) {
+async function addUser(req: any, res: any) {
   const { Email, roleid, Password } = req.body;
-
-  const userRoleId = req.user?.role; // Get the user's ID from the authenticated user
-  if (userRoleId != "1") {
-    res.status(401).send("Only FM can create users");
-  }
-
   const user = await prisma.user.findUnique({
     where: {
       email: Email,
@@ -74,22 +68,19 @@ async function addUser(req: express.Request, res: express.Response) {
 
   const encryptedPassword = await bcrypt.hash(Password, 10);
 
-  await prisma.user.create({
+  const newUser: user = await prisma.user.create({
     data: {
       firstname: "",
       lastname: "",
       email: Email.toLowerCase(),
       password: encryptedPassword,
       roleid: roleid,
-      firstlogin: true,
     },
   });
-
-  res.send("User Created");
+  res.send.send("User Created");
 }
 
 router.post("/login", asyncHandler(login));
-router.use(authenticateToken);
-router.post("/update", asyncHandler(updateinformation));
-router.post("/addUser", asyncHandler(addUser));
+router.post("/register", asyncHandler(updateinformation));
+router.post("/login", asyncHandler(addUser));
 export default router;
