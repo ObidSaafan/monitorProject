@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import asyncHandler from "express-async-handler";
-import { HTTP_BAD_REQUEST } from "../constants/http_status";
+import { HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED } from "../constants/http_status";
 import {
   allowedProjectTypes,
   allowedProjectStatuses,
@@ -15,7 +15,6 @@ const bodyParser = require("body-parser");
 const prisma = new PrismaClient();
 const router = Router();
 
-router.use(authenticateToken);
 async function getAllProjects(req: express.Request, res: express.Response) {
   const projects = await prisma.project.findMany({
     include: { Sprojectmanager: true },
@@ -381,8 +380,10 @@ async function createProject(req: express.Request, res: express.Response) {
 async function updateProject(req: express.Request, res: express.Response) {
   //try {
   const { information } = req.body; // Use the received draftid
-  const userId = req.user?.id;
   const { projectType, date, clientName } = req.params;
+
+  const userId = req.user?.id;
+  const roleId = req.user?.role;
 
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized: User ID is missing." });
@@ -415,24 +416,58 @@ async function updateProject(req: express.Request, res: express.Response) {
     // Convert the draft object to a JSON string
     // const draftJsonString = JSON.stringify(draftJson); //? do we need to stringify the json?
 
-    // Update existing draft
-    const updatedDraft = await prisma.updateapproval.create({
-      data: {
-        id: project.idproject,
-        information: draftJson,
-        ucreator: userId,
-        administrator: project.projectmanager,
-        approval: "Not_Approved",
-      },
-    });
-
-    //TODO approval system still need to be implemented as in sending admin notification and they can approve or not and add comment and the approval removal fix thingy
-    res.json({ success: true, draft: updatedDraft });
+    if (project.projectmanager === userId) {
+      //PM can update project assigned to them without approval
+      const updatedProject = await prisma.project.update({
+        where: { idproject: project.idproject },
+        data: {
+          actualprofit: actualProfit,
+          revenuerecognized: { create: revenuerecognized },
+          actualspend: { create: actualspend },
+          invoice: { create: invoice },
+          budgetedcost: { create: budgetedcost },
+        },
+      });
+      res.json({ success: true, updatedProject });
+    } else if (roleId === "1") {
+      // FM can request update approval
+      const existingDraft = await prisma.updateapproval.findUnique({
+        where: { id: project.idproject },
+      });
+      if (existingDraft) {
+        //TODO: consider the need to have more than 1 draft for each project
+        const updatedDraft = await prisma.updateapproval.update({
+          where: { id: project.idproject },
+          data: {
+            information: draftJson,
+            ucreator: userId,
+            administrator: project.projectmanager,
+            approval: "Not_Approved",
+          },
+        });
+        res.json({ success: true, draft: updatedDraft });
+      }
+      const updatedDraft = await prisma.updateapproval.create({
+        data: {
+          id: project.idproject,
+          information: draftJson,
+          ucreator: userId,
+          administrator: project.projectmanager,
+          approval: "Not_Approved",
+        },
+      });
+      //TODO approval system still need to be implemented as in sending admin notification and they can approve or not and add comment and the approval removal fix thingy
+      res.json({ success: true, draft: updatedDraft });
+    } else {
+      res.status(HTTP_UNAUTHORIZED).send("PM is not assigned to project");
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "An error occurred" });
   }
 }
+
+router.use(authenticateToken);
 
 router.get("/", asyncHandler(getAllProjects));
 //todo turn completion into middlware and use it here too
@@ -448,6 +483,7 @@ router.use(bodyParser.json()); //todo check if removeable
 router.post("/validate25", validate25);
 router.post("/validate50", validate50);
 router.post("/validate75", validate75);
+
 router.post("/create", createProject);
 router.post(
   "/update/projectType/:projectType/date/:date/clientName/:clientName",

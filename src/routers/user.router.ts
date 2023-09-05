@@ -3,6 +3,7 @@ import asyncHandler from "express-async-handler";
 import { HTTP_BAD_REQUEST } from "../constants/http_status";
 import { PrismaClient, user } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import authenticateToken from "../middleware/authentication";
 import { generateTokenResponse } from "../middleware/authentication";
 
 const prisma = new PrismaClient();
@@ -18,7 +19,11 @@ async function login(req: express.Request, res: express.Response) {
   });
   //look using mysql in db for username and password maybe need orm or keep rawdata
   if (user && (await bcrypt.compare(Password, user.password))) {
-    res.send(generateTokenResponse(user));
+    res.send({
+      firstLogin: user.firstlogin,
+      token: generateTokenResponse(user),
+    });
+    res.send();
   } else {
     res.status(HTTP_BAD_REQUEST).send("Email or Password is invalid");
   }
@@ -77,10 +82,13 @@ async function addUser(req: any, res: any) {
       roleid: roleid,
     },
   });
-  res.send.send("User Created");
+  res.send("User Created");
 }
 
 router.post("/login", asyncHandler(login));
-router.post("/register", asyncHandler(updateinformation));
-router.post("/login", asyncHandler(addUser));
+
+router.use(authenticateToken);
+router.post("/update", asyncHandler(updateinformation));
+router.post("/addUser", asyncHandler(addUser));
+
 export default router;
