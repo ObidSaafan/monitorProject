@@ -491,22 +491,3 @@ router.post(
   updateProject
 );
 export default router;
-
-/*
-[
-  {
-    id: 'project_name',
-    rule: 'r/wr',
-    permission: 'projectNameRead',
-    status: project.status,
-    type: project.type,
-    preconditionn: precon
-  },
-  {
-    id: 'project_name',
-    rule: 'wr',
-    permission: 'projectNameRead',
-    status: project.status,
-    type: project.type
-  }
-] */

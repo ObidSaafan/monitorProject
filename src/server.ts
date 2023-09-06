@@ -1,10 +1,10 @@
 import express from "express";
-import cors from "cors";
 import userRouter from "./routers/user.router";
 import testRouter from "./routers/test.router";
 import projectRouter from "./routers/project.router";
 import clientRouter from "./routers/client.router";
 import draftRouter from "./routers/draft.router";
+import reportRouter from "./routers/report.router";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -18,16 +18,9 @@ app.listen(port, () => {
 });
 app.use(express.json());
 
-// TODO: do we need cors?
-// app.use(
-//   cors({
-//     credentials: true,
-//     origin: ["http://localhost:4200"], //4200 for angular app
-//   })
-// );
-
 app.use("/api/users", userRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/clients", clientRouter);
 app.use("/api/drafts", draftRouter);
+app.use("/api/reports", reportRouter);
 app.use("/test", testRouter);

@@ -10,7 +10,7 @@ async function viewAll(req: express.Request, res: express.Response) {
   try {
     const userId = req.user?.id; // Get the user's ID from the authenticated user
     const userRole = req.user?.role; // Get the user's role from the authenticated user
-
+    console.log(userId);
     if (!userId) {
       return res
         .status(401)
