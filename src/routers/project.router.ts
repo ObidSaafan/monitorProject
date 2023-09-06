@@ -16,6 +16,7 @@ const prisma = new PrismaClient();
 const router = Router();
 
 async function getAllProjects(req: express.Request, res: express.Response) {
+  //TODO: add permissions checking
   const projects = await prisma.project.findMany({
     include: { Sprojectmanager: true },
   });

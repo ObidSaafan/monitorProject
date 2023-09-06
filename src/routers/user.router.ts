@@ -12,7 +12,6 @@ const prisma = new PrismaClient();
 const router = Router();
 
 async function login(req: express.Request, res: express.Response) {
-  //TODO: make first login redirect to update information
   const { Email, Password } = req.body;
   const user = await prisma.user.findUnique({
     where: {
@@ -39,6 +38,9 @@ async function updateinformation(req: express.Request, res: express.Response) {
     res.status(401).json({ error: "Unauthorized: User ID is missing." });
   }
 
+  if (!Password) {
+    res.status(HTTP_BAD_REQUEST).send("missing password");
+  }
   const encryptedPassword = await bcrypt.hash(Password, 10);
 
   try {
@@ -76,6 +78,9 @@ async function addUser(req: express.Request, res: express.Response) {
     return;
   }
 
+  if (!Password) {
+    res.status(HTTP_BAD_REQUEST).send("missing password");
+  }
   const encryptedPassword = await bcrypt.hash(Password, 10);
 
   await prisma.user.create({
