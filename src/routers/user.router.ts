@@ -44,6 +44,9 @@ async function updateinformation(req: express.Request, res: express.Response) {
   //   },
   // });
 
+  if (!Password) {
+    res.status(HTTP_BAD_REQUEST).send("missing password");
+  }
   const encryptedPassword = await bcrypt.hash(Password, 10);
 
   const newUser: user = await prisma.user.update({
@@ -71,6 +74,9 @@ async function addUser(req: any, res: any) {
     return;
   }
 
+  if (!Password) {
+    res.status(HTTP_BAD_REQUEST).send("missing password");
+  }
   const encryptedPassword = await bcrypt.hash(Password, 10);
 
   const newUser: user = await prisma.user.create({
