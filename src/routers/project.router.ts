@@ -44,7 +44,7 @@ async function getAllProjects(req: express.Request, res: express.Response) {
           : null,
         contract: contractValue,
         currency: project.currency,
-        completion: completion,
+        completion: completion.toFixed(2),
       };
     })
   );

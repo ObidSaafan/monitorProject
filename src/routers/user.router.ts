@@ -21,7 +21,7 @@ async function login(req: express.Request, res: express.Response) {
   if (user && (await bcrypt.compare(Password, user.password))) {
     res.send({
       firstLogin: user.firstlogin,
-      token: generateTokenResponse(user),
+      user: generateTokenResponse(user),
     });
     res.send();
   } else {
