@@ -30,24 +30,17 @@ async function login(req: express.Request, res: express.Response) {
 }
 
 async function updateinformation(req: express.Request, res: express.Response) {
-  const { firstname, lastname, Password } = req.body;
+  const { firstname, lastname, password } = req.body;
   const userId = req.user?.id; // Get the user's ID from the authenticated user
 
   if (!userId) {
     res.status(401).json({ error: "Unauthorized: User ID is missing." });
   }
-  //TODO: not sure if i need to remove this, its a search, but isnt it already gonna search again to update the record so what is the point here?
-  //! need to test
-  // const user = await prisma.user.findUnique({
-  //   where: {
-  //     iduser: userId,
-  //   },
-  // });
 
-  if (!Password) {
+  if (!password) {
     res.status(HTTP_BAD_REQUEST).send("missing password");
   }
-  const encryptedPassword = await bcrypt.hash(Password, 10);
+  const encryptedPassword = await bcrypt.hash(password, 10);
 
   const newUser: user = await prisma.user.update({
     where: { iduser: userId },
@@ -58,7 +51,10 @@ async function updateinformation(req: express.Request, res: express.Response) {
       firstlogin: false,
     },
   });
-  res.send(generateTokenResponse(newUser));
+  res.send({
+    firstLogin: newUser.firstlogin,
+    user: generateTokenResponse(newUser),
+  });
 }
 //TODO: maybe create a forgot password?
 
