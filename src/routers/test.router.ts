@@ -1,4 +1,4 @@
-import { PrismaClient, project } from "@prisma/client";
+import { PrismaClient, project, type, status, currency } from "@prisma/client";
 import express, { Router } from "express";
 import asyncHandler from "express-async-handler";
 import ExcelJS from "exceljs";
@@ -9,22 +9,42 @@ const user: User[] = [];
 
 const router = Router();
 const prisma = new PrismaClient();
-
+interface filterType {
+  idp: string;
+  idproject: string;
+  projectname: string;
+  description: string | null;
+  projecttype: type;
+  projectstatus: status;
+  projectstartdate: Date;
+  projectmanager: string;
+  currency: currency;
+}
 async function exportTable(req: express.Request, res: express.Response) {
-  const projects = await prisma.project.findMany({
-    include: { client: true, pmclient: true, Sprojectmanager: true },
-  });
+  const { filters }: { filters: filterType } = req.body;
 
-  const formattedProjects = projects.map((proj) => {
-    return {
-      ...proj,
-      projectmanager:
-        proj.Sprojectmanager.firstname + " " + proj.Sprojectmanager.lastname,
-      clientpm: proj.pmclient.name,
-      client: proj.client.clientname,
-      projectstartdate: proj.projectstartdate.toISOString(),
-    };
-  });
+  //result
+  let formattedProjects: any;
+  try {
+    const projects = await prisma.project.findMany({
+      where: { ...filters },
+      include: { client: true, pmclient: true, Sprojectmanager: true },
+    });
+
+    formattedProjects = projects.map((proj) => {
+      return {
+        ...proj,
+        projectmanager:
+          proj.Sprojectmanager.firstname + " " + proj.Sprojectmanager.lastname,
+        clientpm: proj.pmclient.name,
+        client: proj.client.clientname,
+        projectstartdate: proj.projectstartdate.toISOString(),
+      };
+    });
+  } catch {
+    res.status(500).send("Invalid Filters");
+    return;
+  }
 
   let workbook = new ExcelJS.Workbook(); // Creating workbook
   let worksheet = workbook.addWorksheet("Profile"); // Creating worksheet
