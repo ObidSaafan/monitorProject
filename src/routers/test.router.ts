@@ -28,7 +28,13 @@ async function exportTable(req: express.Request, res: express.Response) {
   try {
     const projects = await prisma.project.findMany({
       where: { ...filters },
-      include: { client: true, pmclient: true, Sprojectmanager: true },
+      include: {
+        client: true,
+        pmclient: true,
+        Sprojectmanager: true,
+        actualspend: true,
+        revenuerecognized: true,
+      },
     });
 
     formattedProjects = projects.map((proj) => {
@@ -39,6 +45,14 @@ async function exportTable(req: express.Request, res: express.Response) {
         clientpm: proj.pmclient.name,
         client: proj.client.clientname,
         projectstartdate: proj.projectstartdate.toISOString(),
+        totalspend: proj.actualspend.reduce(
+          (sum, spend) => sum + spend.value,
+          0
+        ),
+        totalrevenue: proj.revenuerecognized.reduce(
+          (sum, revenue) => sum + revenue.value,
+          0
+        ),
       };
     });
   } catch {
@@ -63,8 +77,6 @@ async function exportTable(req: express.Request, res: express.Response) {
   workbook.xlsx.write(res).then(function () {
     res.end();
   });
-}
-
 }
 
 router.get("/", exportTable);

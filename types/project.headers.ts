@@ -90,15 +90,13 @@ export const projectExcelHeaders = [
     width: 10,
   },
   {
-    //! add key
-    header: "Actual Spend",
-    key: "",
+    header: "Total Spend",
+    key: "totalspend",
     width: 10,
   },
   {
-    //! add key
     header: "Total Revenue recognized",
-    key: "",
+    key: "totalrevenue",
     width: 10,
   },
 ];
