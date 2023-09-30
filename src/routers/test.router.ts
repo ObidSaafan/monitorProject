@@ -33,24 +33,18 @@ async function exportTable(req: express.Request, res: express.Response) {
 
   worksheet.addRows(formattedProjects);
 
-  const filePath = path.join(__dirname, "projects.xlsx");
-  await workbook.xlsx.writeFile(filePath);
-
+  const fileName = "Projects";
   // Set response headers
   res.setHeader(
-    "Content-Type",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    "Content-Disposition",
+    "attachment; filename=" + fileName + ".xlsx"
   );
-  res.setHeader("Content-Disposition", "attachment; filename=projects.xlsx");
-
-  // Send the Excel file as a response
-  res.sendFile(filePath, function (err) {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log("Sent");
-    }
+  // Stream file
+  workbook.xlsx.write(res).then(function () {
+    res.end();
   });
+}
+
 }
 
 router.get("/", exportTable);

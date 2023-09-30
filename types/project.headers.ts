@@ -1,4 +1,3 @@
-//
 export const projectExcelHeaders = [
   {
     header: "project ID",
