@@ -16,11 +16,19 @@ const prisma = new PrismaClient();
 const router = Router();
 
 async function getAllProjects(req: express.Request, res: express.Response) {
-  //TODO: add permissions checking
-  const projects = await prisma.project.findMany({
-    include: { Sprojectmanager: true },
-  });
-
+  const userRole = req.user?.role;
+  const userId = req.user?.id;
+  let projects;
+  if (userRole === "1") {
+    projects = await prisma.project.findMany({
+      include: { Sprojectmanager: true },
+    });
+  } else {
+    projects = await prisma.project.findMany({
+      where: { projectmanager: userId },
+      include: { Sprojectmanager: true },
+    });
+  }
   const projectsWithCompletion = await Promise.all(
     projects.map(async (project) => {
       const latestRevenue = await prisma.revenuerecognized.findFirst({
