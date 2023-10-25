@@ -95,7 +95,7 @@ export const projectExcelHeaders = [
     width: 10,
   },
   {
-    header: "Total Revenue recognized",
+    header: "Total Revenue Recognized",
     key: "totalrevenue",
     width: 10,
   },

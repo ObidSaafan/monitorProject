@@ -1,16 +1,12 @@
-import express, { Router } from "express";
-import asyncHandler from "express-async-handler";
-import { HTTP_BAD_REQUEST } from "../constants/http_status";
+import express from "express";
+import { HTTP_BAD_REQUEST } from "../../constants/http_status";
 import { PrismaClient, user } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import authenticateToken from "../middleware/authentication";
-import { generateTokenResponse } from "../middleware/authentication";
+import { generateTokenResponse } from "../../middleware/authentication";
 
 const prisma = new PrismaClient();
 
-const router = Router();
-
-async function login(req: express.Request, res: express.Response) {
+export async function login(req: express.Request, res: express.Response) {
   const { Email, Password } = req.body;
   const user = await prisma.user.findUnique({
     where: {
@@ -29,7 +25,10 @@ async function login(req: express.Request, res: express.Response) {
   }
 }
 
-async function updateinformation(req: express.Request, res: express.Response) {
+export async function updateinformation(
+  req: express.Request,
+  res: express.Response
+) {
   const { firstname, lastname, password } = req.body;
   const userId = req.user?.id; // Get the user's ID from the authenticated user
 
@@ -58,7 +57,7 @@ async function updateinformation(req: express.Request, res: express.Response) {
 }
 //TODO: maybe create a forgot password?
 
-async function addUser(req: any, res: any) {
+export async function addUser(req: any, res: any) {
   const { Email, roleid, Password } = req.body;
   const user = await prisma.user.findUnique({
     where: {
@@ -86,11 +85,3 @@ async function addUser(req: any, res: any) {
   });
   res.send("User Created");
 }
-
-router.post("/login", asyncHandler(login));
-
-router.use(authenticateToken);
-router.post("/update", asyncHandler(updateinformation));
-router.post("/addUser", asyncHandler(addUser));
-
-export default router;

@@ -1,10 +1,8 @@
 import express from "express";
-import userRouter from "./routers/user.router";
-import testRouter from "./routers/test.router";
-import projectRouter from "./routers/project.router";
-import clientRouter from "./routers/client.router";
-import draftRouter from "./routers/draft.router";
-import reportRouter from "./routers/report.router";
+import userRouter from "./routers/user/user.router";
+import projectRouter from "./routers/project/project.router";
+import clientRouter from "./routers/client/client.router";
+import draftRouter from "./routers/draft/draft.router";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -25,5 +23,3 @@ app.use("/api/users", userRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/clients", clientRouter);
 app.use("/api/drafts", draftRouter);
-app.use("/api/reports", reportRouter);
-app.use("/test", testRouter);
