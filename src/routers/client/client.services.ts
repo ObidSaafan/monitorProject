@@ -5,6 +5,13 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function addClient(req: express.Request, res: express.Response) {
+  const userRole = req.user?.role;
+  if (userRole !== "1") {
+    res
+      .status(403)
+      .json({ error: "Forbidden: User does not have permission." });
+    return;
+  }
   const { clientName, pmName, pmEmail } = req.body;
 
   try {
@@ -67,6 +74,18 @@ export async function addClient(req: express.Request, res: express.Response) {
     });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+export async function getClients(req: express.Request, res: express.Response) {
+  try {
+    const Clients = await prisma.client.findMany({
+      include: { clientpm: true },
+    });
+    res.send(Clients);
+  } catch (err) {
+    console.log(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
