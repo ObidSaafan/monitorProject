@@ -497,17 +497,21 @@ export async function filterProjects(
   const userRole = req.user?.role;
   const userId = req.user?.id;
 
-  if (userRole !== "1" && filters.projectmanager !== userId) {
-    res.sendStatus(HTTP_UNAUTHORIZED);
-    return;
+  if (userRole !== "1") {
+    if (!filters.projectmanager) {
+      filters.projectmanager = userId;
+    } else if (filters.projectmanager !== userId) {
+      res.sendStatus(HTTP_UNAUTHORIZED);
+      return;
+    }
   }
+
   //extract name for fuzzy search
   let nameSearch = "";
   if (filters.projectname) {
     nameSearch = filters.projectname;
     delete filters.projectname;
   }
-
   try {
     const projects = await prisma.project.findMany({
       where: { ...filters, projectname: { contains: nameSearch } },
@@ -546,7 +550,8 @@ export async function filterProjects(
       })
     );
     res.send(projectsWithCompletion);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).send("Invalid Filters");
     return;
   }

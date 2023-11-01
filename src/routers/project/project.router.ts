@@ -27,7 +27,7 @@ router.get(
   "/projectType/:projectType/date/:date/clientName/:clientName",
   getProject
 );
-router.get("/filter", asyncHandler(filterProjects));
+router.post("/filter", asyncHandler(filterProjects));
 router.get("/information", getInformation);
 router.get("/search/:searchTerm", asyncHandler(searchProject));
 
