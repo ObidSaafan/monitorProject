@@ -35,15 +35,16 @@ export async function getAllProjects(
   }
   const projectsWithCompletion = await Promise.all(
     projects.map(async (project) => {
-      const latestRevenue = await prisma.revenuerecognized.findFirst({
+      const revenuerecognized = await prisma.revenuerecognized.findMany({
         where: { idproject: project.idproject },
-        orderBy: { date: "desc" },
       });
 
+      const totalRevenue = revenuerecognized.reduce(
+        (sum, entry) => sum + entry.value,
+        0
+      );
       const contractValue = project.contractvalue;
-      const completion = latestRevenue
-        ? (latestRevenue.value / contractValue) * 100
-        : 0; // Default to 0 if no revenue recognized entry found
+      const completion = (totalRevenue / contractValue) * 100;
 
       const projectManager = project.Sprojectmanager;
 
@@ -522,17 +523,16 @@ export async function filterProjects(
 
     const projectsWithCompletion = await Promise.all(
       projects.map(async (project) => {
-        const totalRevenue = (
-          await prisma.revenuerecognized.findMany({
-            where: { idproject: project.idproject },
-            orderBy: { date: "desc" },
-          })
-        ).reduce((sum, revenue) => sum + revenue.value, 0);
+        const revenuerecognized = await prisma.revenuerecognized.findMany({
+          where: { idproject: project.idproject },
+        });
 
+        const totalRevenue = revenuerecognized.reduce(
+          (sum, entry) => sum + entry.value,
+          0
+        );
         const contractValue = project.contractvalue;
-        const completion = totalRevenue
-          ? (totalRevenue / contractValue) * 100
-          : 0; // Default to 0 if no revenue recognized entry found
+        const completion = (totalRevenue / contractValue) * 100;
 
         const projectManager = project.Sprojectmanager;
 
