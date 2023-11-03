@@ -89,3 +89,12 @@ export async function getClients(req: express.Request, res: express.Response) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
+export async function getClientInformation(
+  req: express.Request,
+  res: express.Response
+) {
+  const clients = await prisma.client.findMany({
+    select: { clientid: true, clientname: true, clientpm: true },
+  });
+  res.send(clients);
+}
