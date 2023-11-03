@@ -562,6 +562,18 @@ export async function exportReport(
   res: express.Response
 ) {
   const { filters }: { filters: filterType } = req.body;
+  const userRole = req.user?.role;
+  const userId = req.user?.id;
+
+  if (userRole !== "1") {
+    if (!filters.projectmanager) {
+      filters.projectmanager = userId;
+    } else if (filters.projectmanager !== userId) {
+      res.sendStatus(HTTP_UNAUTHORIZED);
+      return;
+    }
+  }
+
   let nameSearch = "";
   if (filters.projectname) {
     nameSearch = filters.projectname;
