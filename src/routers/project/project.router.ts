@@ -8,7 +8,6 @@ import {
   getAllProjects,
   getInformation,
   getProject,
-  searchProject,
   updateProject,
   validate25,
   validate50,
@@ -29,7 +28,6 @@ router.get(
 );
 router.post("/filter", asyncHandler(filterProjects));
 router.get("/information", getInformation);
-router.get("/search/:searchTerm", asyncHandler(searchProject));
 
 router.use(bodyParser.json()); //todo check if removeable
 
