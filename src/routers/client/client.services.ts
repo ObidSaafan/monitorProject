@@ -12,7 +12,7 @@ export async function addClient(req: express.Request, res: express.Response) {
       .json({ error: "Forbidden: User does not have permission." });
     return;
   }
-  const { clientName, pmName, pmEmail } = req.body;
+  const { clientName } = req.body;
 
   try {
     // Check if the client exists
@@ -22,62 +22,93 @@ export async function addClient(req: express.Request, res: express.Response) {
       },
     });
 
-    let clientId;
-
     if (existingClient) {
-      clientId = existingClient.clientid; // Use the existing client's ID
-    } else {
-      // Add a new client if it doesn't exist
-      const newClient = await prisma.client.create({
-        data: {
-          clientname: clientName.toLowerCase(),
-        },
-      });
-
-      clientId = newClient.clientid;
+      res.status(HTTP_BAD_REQUEST).send("Client Already Exists");
+      return;
     }
-
+    // Add a new client if it doesn't exist
+    await prisma.client.create({
+      data: {
+        clientname: clientName.toLowerCase(),
+      },
+    });
+    res.status(200).send("Client Created successfully");
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+}
+export async function addClientPM(req: express.Request, res: express.Response) {
+  const userRole = req.user?.role;
+  const { clientName, pmEmail, pmName } = req.body;
+  if (userRole !== "1") {
+    res
+      .status(403)
+      .json({ error: "Forbidden: User does not have permission." });
+    return;
+  }
+  try {
     // Check if the project manager exists
     const existingPM = await prisma.clientpm.findFirst({
       where: {
         email: pmEmail,
       },
     });
-
     if (existingPM) {
-      // Project manager already exists for some client
-      if (existingPM.clientid !== clientId) {
-        // If the existing project manager belongs to a different client, return an error
-        res
-          .status(HTTP_BAD_REQUEST)
-          .send("Project manager already exists for a different client.");
-        return;
-      }
-      // Otherwise, it's an existing project manager associated with the same client.
-      // You can choose to update the project manager details here if needed.
-      res.send({ message: "Project Manager already exists for the client." });
+      res.status(HTTP_BAD_REQUEST).send("Project Manager Already Exists");
       return;
     }
-
-    // Add a new project manager associated with the client (either existing or newly created)
-    const newPM = await prisma.clientpm.create({
-      // TODO: test the remove the newPM
+    const pm = await prisma.clientpm.create({
       data: {
-        name: pmName.toLowerCase(),
-        email: pmEmail.toLowerCase(),
-        clientid: clientId, // Use the client ID (either existing or newly created)
+        email: pmEmail,
+        name: pmName,
+        company: { connect: { clientname: clientName } },
       },
     });
-
     res.send({
-      message: "Client and/or Project Manager added successfully.",
+      message: "Project Manager added successfully.",
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
   }
 }
-
+export async function removeClientPM(
+  req: express.Request,
+  res: express.Response
+) {
+  const userRole = req.user?.role;
+  const { clientName, pmEmail, pmName } = req.body;
+  if (userRole !== "1") {
+    res
+      .status(403)
+      .json({ error: "Forbidden: User does not have permission." });
+    return;
+  }
+  try {
+    // Check if the project manager exists
+    const existingPM = await prisma.clientpm.findFirst({
+      where: {
+        email: pmEmail,
+      },
+    });
+    if (!existingPM) {
+      res.status(HTTP_BAD_REQUEST).send("Project Manager Doesnt Exists");
+      return;
+    }
+    await prisma.clientpm.delete({
+      where: {
+        email: pmEmail,
+      },
+    });
+    res.send({
+      message: "Project Manager Deleted successfully.",
+    });
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
+}
 export async function getClients(req: express.Request, res: express.Response) {
   try {
     const Clients = await prisma.client.findMany({
@@ -96,5 +127,13 @@ export async function getClientInformation(
   const clients = await prisma.client.findMany({
     select: { clientid: true, clientname: true, clientpm: true },
   });
-  res.send(clients);
+  res.send(
+    clients.map((client) => {
+      return {
+        clientid: client.clientid,
+        clientname: client.clientname,
+        pms: client.clientpm,
+      };
+    })
+  );
 }

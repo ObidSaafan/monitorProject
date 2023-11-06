@@ -40,5 +40,5 @@ router.post(
   "/update/projectType/:projectType/date/:date/clientName/:clientName",
   updateProject
 );
-router.get("/report", asyncHandler(exportReport));
+router.post("/report", asyncHandler(exportReport));
 export default router;
