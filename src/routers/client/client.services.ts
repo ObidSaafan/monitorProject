@@ -32,7 +32,9 @@ export async function addClient(req: express.Request, res: express.Response) {
         clientname: clientName.toLowerCase(),
       },
     });
-    res.status(200).send("Client Created successfully");
+    res.status(200).send({
+      message: "Client Created successfully",
+    });
   } catch (err) {
     console.error(err);
     res.sendStatus(500);
