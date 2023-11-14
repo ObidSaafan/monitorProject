@@ -68,7 +68,7 @@ export async function getAllProjects(
 export async function getProject(req: express.Request, res: express.Response) {
   const { projectType, date, clientName } = req.params;
   const userId = req.user?.id;
-
+  const userRole = req.user?.role;
   try {
     const project = await prisma.project.findUnique({
       where: { idproject: `${projectType}/${date}/${clientName}` },
@@ -84,17 +84,17 @@ export async function getProject(req: express.Request, res: express.Response) {
       return res.status(404).send("project doesnt exist");
     }
     if (userRole != "1") {
-    if (!userId || project.projectmanager !== userId) {
-      return res.status(401).json({
-        error: "Unauthorized: User ID is missing or not authorized.",
-      });
+      if (!userId || project.projectmanager !== userId) {
+        return res.status(401).json({
+          error: "Unauthorized: User ID is missing or not authorized.",
+        });
       }
     }
     const updaterequest = await prisma.updateapproval.findUnique({
       where: { id: project.idproject },
     });
     if (!updaterequest) {
-      res.json({ success: true, project }); // Send response without updaterequest
+      res.json({ project }); // Send response without updaterequest
     } else {
       if (
         //todo need testing on the update request and the full process of the get project, i did small testing n i think it works
@@ -106,7 +106,7 @@ export async function getProject(req: express.Request, res: express.Response) {
           error: "Unauthorized: User ID is missing or not authorized.",
         });
       }
-      res.json({ success: true, project, updaterequest });
+      res.json({ project, updaterequest });
     }
   } catch (error) {
     console.error(error);
@@ -420,7 +420,7 @@ export async function updateProject(
     });
 
     if (!project) {
-      return res.status(404).send("Not Found");
+      return res.status(404).json("Not Found");
     }
 
     const {
@@ -454,7 +454,7 @@ export async function updateProject(
           budgetedcost: { create: budgetedcost },
         },
       });
-      res.json({ success: true, updatedProject });
+      res.json({ updatedProject });
     } else if (roleId === "1") {
       // FM can request update approval
       const existingDraft = await prisma.updateapproval.findUnique({
@@ -471,7 +471,7 @@ export async function updateProject(
             approval: "Not_Approved",
           },
         });
-        res.json({ success: true, draft: updatedDraft });
+        res.json({ draft: updatedDraft });
       }
       const updatedDraft = await prisma.updateapproval.create({
         data: {
@@ -483,9 +483,9 @@ export async function updateProject(
         },
       });
       //TODO approval system still need to be implemented as in sending admin notification and they can approve or not and add comment and the approval removal fix thingy
-      res.json({ success: true, draft: updatedDraft });
+      res.json({ draft: updatedDraft });
     } else {
-      res.status(HTTP_UNAUTHORIZED).send("PM is not assigned to project");
+      res.status(HTTP_UNAUTHORIZED).json("PM is not assigned to project");
     }
   } catch (error) {
     console.error(error);
