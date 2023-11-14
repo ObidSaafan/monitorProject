@@ -83,10 +83,12 @@ export async function getProject(req: express.Request, res: express.Response) {
     if (!project) {
       return res.status(404).send("project doesnt exist");
     }
+    if (userRole != "1") {
     if (!userId || project.projectmanager !== userId) {
       return res.status(401).json({
         error: "Unauthorized: User ID is missing or not authorized.",
       });
+      }
     }
     const updaterequest = await prisma.updateapproval.findUnique({
       where: { id: project.idproject },
